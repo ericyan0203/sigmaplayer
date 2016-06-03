@@ -10,7 +10,7 @@ extern "C" {
 
 Error_Type_e HalSys_Media_Initialize(void);
 
-Error_Type_e HalSys_Medie_Deinit(void);
+Error_Type_e HalSys_Media_Deinit(void);
 
 Error_Type_e HalSys_Media_Open(Media_Config_t* ptMediaConfig, sigma_handle_t* ptInst);
 
@@ -22,7 +22,7 @@ Error_Type_e HalSys_Media_Stop(sigma_handle_t ptInst);
 
 Error_Type_e HalSys_Media_Pause(sigma_handle_t ptInst);
 
-Error_Type_e HalSys_Medie_Resume(sigma_handle_t ptInst);
+Error_Type_e HalSys_Media_Resume(sigma_handle_t ptInst);
 
 Error_Type_e HalSys_Media_Flush(sigma_handle_t ptInst, FlushMode_e eMode);
 
