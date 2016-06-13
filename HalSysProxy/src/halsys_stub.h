@@ -25,28 +25,43 @@ extern "C" {
  *    common parameter
  *    '1I'
  */
-typedef struct HALSYS_COMMON_PARAMETER { unsigned int instance; } __attribute((packed)) halsys_common_param;
+#pragma pack(push)  
+#pragma pack(1) 
+typedef struct HALSYS_COMMON_PARAMETER { 
+	unsigned int instance; 
+} halsys_common_param;
+#pragma pack(pop)
 
 /** struct HALSYS_COMMON_RETURN
  *  	common return type
  *   '1I'
  */
-typedef struct HALSYS_COMMON_RETURN { unsigned int ret; } __attribute((packed)) halsys_common_ret;
+#pragma pack(push)  
+#pragma pack(1) 
+typedef struct HALSYS_COMMON_RETURN { 
+	unsigned int ret; 
+}halsys_common_ret;
+#pragma pack(pop)
 
 /** struct HALSYS_COMMAND_PARAMETER
  *  Init Parameter for HalSys_Initialize
  *  '128s128s128s'
  */
+#pragma pack(push)  
+#pragma pack(1) 
 typedef struct HALSYS_INIT_PARAMETER {
     char sound_path[PATHLEN];
     char audio_path[PATHLEN];
     char display_path[PATHLEN];
-} __attribute((packed)) halsys_init_param;
+} halsys_init_param;
+#pragma pack(pop)
 
 /** struct MEDIA_OPEN_PARAMETER
  *  media open command parameter
  *  10B
  */
+#pragma pack(push)  
+#pragma pack(1)
 typedef struct MEDIA_OPEN_PARAMETER {
     unsigned char video_format;
     unsigned char video_playback_mode;
@@ -58,30 +73,39 @@ typedef struct MEDIA_OPEN_PARAMETER {
     unsigned char audio_sink;
     unsigned char clock_mode;
     unsigned char lowlatency;
-} __attribute((packed)) media_open_param;
+} media_open_param;
+#pragma pack(pop)
 
 /** struct HALSYS_OPEN_RETURN
  *   media open command return value
  *   '2I'
  */
+#pragma pack(push)  
+#pragma pack(1)
 typedef struct HALSYS_OPEN_RETURN {
     unsigned int ret;
     unsigned int instance;
-} __attribute((packed)) halsys_open_ret;
+} halsys_open_ret;
+#pragma pack(pop)
 
 /** struct MEDIA_FLUSH_PARAMETER
  *  media flush command parameter
  *  '1I1B'
  */
+#pragma pack(push)  
+#pragma pack(1)
 typedef struct MEDIA_FLUSH_PARAMETER {
     unsigned int instance;
     unsigned char flush_mode;
-} __attribute((packed)) media_flush_param;
+} media_flush_param;
+#pragma pack(pop)
 
 /** struct MEDIA_PUSH_PARAMETER
  *  media push command parameter
  * header '5I1Q1I'
  */
+#pragma pack(push)  
+#pragma pack(1)
 typedef struct MEDIA_PUSH_PARAMETER {
     unsigned int instance;
     unsigned int size;
@@ -91,81 +115,100 @@ typedef struct MEDIA_PUSH_PARAMETER {
     unsigned long long pts;
     unsigned int flags;
     unsigned char data[0];
-} __attribute((packed)) media_push_param;
+} media_push_param;
+#pragma pack(pop)
 
 /** struct HDMI_OPEN_PARAMETER
  *  	HDMI open command parameter
  *   '1I'
  */
-typedef struct HDMI_OPEN_PARAMETER { unsigned int bFrc; } __attribute((packed)) hdmi_open_param;
+#pragma pack(push)  
+#pragma pack(1)
+typedef struct HDMI_OPEN_PARAMETER { 
+	unsigned int bFrc; 
+}hdmi_open_param;
+#pragma pack(pop)
 
 /** struct HDMI_START_PARAMETER
  *   HDMI start command parameter
  *   '4I'
  */
+#pragma pack(push)  
+#pragma pack(1)
 typedef struct HDMI_START_PARAMETER {
     unsigned int instance;
     unsigned int display_source;
     unsigned int audio_sink;
     unsigned int video_sink;
-} __attribute((packed)) hdmi_start_param;
+}hdmi_start_param;
+#pragma pack(pop)
 
+#pragma pack(push)  
+#pragma pack(1)
 typedef struct HALSYS_RETURN {
     unsigned int size;
     union {
         halsys_common_ret common_ret;
         halsys_open_ret open_ret;
     };
-} __attribute((packed)) halsys_ret;
+} halsys_ret;
+#pragma pack(pop)
 
+#pragma pack(push)  
+#pragma pack(1)
 typedef struct {
     unsigned int length;
     char domain_name[HALSYS_NAME_LENGTH];
 } halsys_packet_header;
+#pragma pack(pop)
 
+#pragma pack(push)  
+#pragma pack(1)
 typedef struct {
     char func_name[HALSYS_NAME_LENGTH];
     unsigned int param_len;
     char data[0];
 } halsys_packet_data;
-
+#pragma pack(pop)
 
 //*************************************************************
 // Function
 //*************************************************************
-halsys_ret halsys_initialize(void* arg);
+halsys_ret halsys_initialize(halsys_init_param * arg);
 
-halsys_ret halsys_media_initialize(void* arg);
+halsys_ret halsys_deinit(void* arg);
 
-halsys_ret halsys_media_deinit(void* arg);
+halsys_ret halsys_media_initialize(void);
 
-halsys_ret halsys_media_open(void* arg);
+halsys_ret halsys_media_deinit(void);
 
-halsys_ret halsys_media_close(void* arg);
+halsys_ret halsys_media_open(media_open_param* arg);
 
-halsys_ret halsys_media_start(void* arg);
+halsys_ret halsys_media_close(halsys_common_param* arg);
 
-halsys_ret halsys_media_stop(void* arg);
+halsys_ret halsys_media_start(halsys_common_param* arg);
 
-halsys_ret halsys_media_pause(void* arg);
+halsys_ret halsys_media_stop(halsys_common_param* arg);
 
-halsys_ret halsys_media_resume(void* arg);
+halsys_ret halsys_media_pause(halsys_common_param* arg);
 
-halsys_ret halsys_media_flush(void* arg);
+halsys_ret halsys_media_resume(halsys_common_param* arg);
 
-halsys_ret halsys_media_pushframe(void* arg);
+halsys_ret halsys_media_flush(media_flush_param* arg);
 
-halsys_ret halsys_hdmi_initialize(void* arg);
+halsys_ret halsys_media_pushframe(media_push_param* arg);
 
-halsys_ret halsys_hdmi_deinit(void* arg);
+halsys_ret halsys_hdmi_initialize(void);
 
-halsys_ret halsys_hdmi_open(void* arg);
+halsys_ret halsys_hdmi_deinit(void);
 
-halsys_ret halsys_hdmi_close(void* arg);
+halsys_ret halsys_hdmi_open(hdmi_open_param* arg);
 
-halsys_ret halsys_hdmi_start(void* arg);
+halsys_ret halsys_hdmi_close(halsys_common_param* arg);
 
-halsys_ret halsys_hdmi_stop(void* arg);
+halsys_ret halsys_hdmi_start(hdmi_start_param* arg);
+
+halsys_ret halsys_hdmi_stop(halsys_common_param* arg);
 
 #ifdef __cplusplus
 }

@@ -7,7 +7,9 @@
 #ifdef	WIN32 
 #include <winsock2.h>
 #pragma   comment(lib,"ws2_32.lib") 
+//include "pthread.h"
 #endif
+
 
 #ifdef	__linux
 
@@ -56,7 +58,9 @@ int socket_connect(const char *host_name, int port, int dtimeout)
 	WSADATA ws;
 #endif
 
-			 
+	timeout.tv_sec = dtimeout / 1000;
+	timeout.tv_usec = dtimeout % 1000;
+	
     memset(&host_addr, 0, sizeof(host_addr));
 
     host_addr.sin_family           = AF_INET;
@@ -111,8 +115,7 @@ int socket_connect(const char *host_name, int port, int dtimeout)
     {
 		FD_ZERO(&set);
 		FD_SET(_socket, &set);
-		timeout.tv_sec = dtimeout / 1000;
-		timeout.tv_usec = dtimeout % 1000;
+		
 
 		if (select(0, 0, &set, 0, &timeout) <= 0)
 		{
@@ -143,6 +146,8 @@ int socket_connect(const char *host_name, int port, int dtimeout)
     fcntl(_socket,F_SETFL, O_NONBLOCK);
 #endif
 
+	printf("dtimeout %d\n",dtimeout);
+
     setsockopt(_socket,   SOL_SOCKET,   SO_SNDTIMEO, (char*)&dtimeout,   sizeof(dtimeout));
     setsockopt(_socket,   SOL_SOCKET,   SO_RCVTIMEO, (char*)&dtimeout,   sizeof(dtimeout));
     
@@ -154,14 +159,18 @@ int socket_send(packet * pack)
     HANDLE hMutex;
     int  nRet;
     unsigned char  *p;
-    unsigned int result_length, length, count;
+    unsigned int result_length,  count;
+	int length;
+	
 	int failed_exit = 0, failed_recv = 0;
     if (_socket == INVALID_SOCKET) return -1;
 
     hMutex = Lock("CMDCLT_SEND");
    
 	failed_exit = 0;
-    
+
+	printf("send hrd len %d\n",pack->hdr_len);
+	
 	nRet = send(_socket, (const char *)pack->hdr, pack->hdr_len, 0);
 
 	if(nRet < 0)
@@ -171,6 +180,8 @@ int socket_send(packet * pack)
 		goto ERROR_OUT;
 	}
 
+	printf("send data len %d\n",pack->data_len);
+	
 	nRet = send(_socket, (const char *)pack->data, pack->data_len, 0);
 	if(nRet < 0)
 	{
@@ -183,17 +194,21 @@ int socket_send(packet * pack)
     p = (unsigned char*)pack->ret;
     count = result_length;
 
+	printf("recv ret expected len %d\n",pack->ret_len);
     while (count > 0)
     {
         length = recv(_socket,(char *)p, count, 0);
 
+		printf("recv ret length %x\n",length);
+		
         if (length > 0)
         {
             count -= length;
             p += length;
         }
         else
-        {
+        {	
+            printf("recv wsa error %x\n", WSAGetLastError());
 			failed_recv = 1;
             goto ERROR_OUT;
         }

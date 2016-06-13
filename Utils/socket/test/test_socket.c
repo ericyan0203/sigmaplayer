@@ -8,7 +8,7 @@ int main(void)
 {
 	printf("socket test start\n");
 
-	if(socket_connect(ip_addr, DEBUG_SERVER_PORT, 1000) < 0)
+	if(socket_connect(ip_addr, DEBUG_SERVER_PORT, 3000) < 0)
 	{
 		printf("connect failed\n");
 		//return -1;

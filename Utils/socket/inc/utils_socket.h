@@ -8,7 +8,7 @@ extern "C" {
 typedef struct{
 	unsigned int  hdr_len;
  	unsigned char * hdr;
-	unsigned int  data_len;
+	unsigned int  data_len;//payload
 	unsigned char * data;
 	unsigned int  ret_len;  
 	unsigned char * ret;  //filled by  socket
