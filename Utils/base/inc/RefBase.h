@@ -49,7 +49,7 @@ public:
         mCount++;
     }
     inline void decStrong(const void* id) const {
-        if (mCount-- == 1) {
+        if ((--mCount) == 1) {
             delete static_cast<const T*>(this);
         }
     }

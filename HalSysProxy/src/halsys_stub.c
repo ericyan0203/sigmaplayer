@@ -4,7 +4,7 @@
 #include <unistd.h>
 #endif
 #include  <string.h>
-
+#include  <stdio.h>
 #include "halsys_stub.h"
 #include "utils_socket.h"
 #include "pthread.h"

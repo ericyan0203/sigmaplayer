@@ -1,40 +1,22 @@
-/*
- * Copyright (C) 2009 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 #ifndef MEDIA_SOURCE_H_
 
 #define MEDIA_SOURCE_H_
 
 #include <sys/types.h>
 
-#include <media/stagefright/MediaErrors.h>
-#include <utils/RefBase.h>
-#include <utils/Vector.h>
-
-namespace android {
+#include <RefBase.h>
+#include <Vector.h>
+#include "SIGM_Types.h"
 
 class MediaBuffer;
 class MetaData;
 
-struct MediaSource : public virtual RefBase {
+struct MediaSource : public VirtualLightRefBase {
     MediaSource();
 
     // To be called before any other methods on this object, except
     // getFormat().
-    virtual status_t start(MetaData *params = NULL) = 0;
+    virtual Error_Type_e start(MetaData *params = NULL) = 0;
 
     // Any blocking read call returns immediately with a result of NO_INIT.
     // It is an error to call any methods other than start after this call
@@ -42,15 +24,7 @@ struct MediaSource : public virtual RefBase {
     // the stop() call are released.
     // Also, it is imperative that any buffers output by this object and
     // held onto by callers be released before a call to stop() !!!
-    virtual status_t stop() = 0;
-
-#ifdef SYSTEM_SMP87XX
-    // Currently only supported by TS source
-    virtual uint32_t getDataSourceFlags() {return 0;};
-
-    // Currently only supported by OMXCodec
-    virtual status_t prepareStop(bool ) {return OK;};
-#endif
+    virtual Error_Type_e stop() = 0;
 
     // Returns the format of the data output by this media source.
     virtual sp<MetaData> getFormat() = 0;
@@ -64,7 +38,7 @@ struct MediaSource : public virtual RefBase {
     // A result of INFO_FORMAT_CHANGED indicates that the format of this
     // MediaSource has changed mid-stream, the client can continue reading
     // but should be prepared for buffers of the new configuration.
-    virtual status_t read(
+    virtual Error_Type_e read(
             MediaBuffer **buffer, const ReadOptions *options = NULL) = 0;
 
     // Options that modify read() behaviour. The default is to
@@ -87,13 +61,6 @@ struct MediaSource : public virtual RefBase {
         void clearSeekTo();
         bool getSeekTo(int64_t *time_us, SeekMode *mode) const;
 
-        void setLateBy(int64_t lateness_us);
-        int64_t getLateBy() const;
-
-        void setNonBlocking();
-        void clearNonBlocking();
-        bool getNonBlocking() const;
-
     private:
         enum Options {
             kSeekTo_Option      = 1,
@@ -102,15 +69,13 @@ struct MediaSource : public virtual RefBase {
         uint32_t mOptions;
         int64_t mSeekTimeUs;
         SeekMode mSeekMode;
-        int64_t mLatenessUs;
-        bool mNonBlocking;
     };
 
     // Causes this source to suspend pulling data from its upstream source
     // until a subsequent read-with-seek. Currently only supported by
     // OMXCodec.
-    virtual status_t pause() {
-        return ERROR_UNSUPPORTED;
+    virtual Error_Type_e pause() {
+        return SIGM_ErrorNotSupported;
     }
 
     // The consumer of this media source requests that the given buffers
@@ -119,7 +84,7 @@ struct MediaSource : public virtual RefBase {
     // first read() call.
     // Callee assumes ownership of the buffers if no error is returned.
     virtual status_t setBuffers(const Vector<MediaBuffer *> & /* buffers */) {
-        return ERROR_UNSUPPORTED;
+        return SIGM_ErrorNotSupported;
     }
 
 protected:
@@ -130,6 +95,6 @@ private:
     MediaSource &operator=(const MediaSource &);
 };
 
-}  // namespace android
 
 #endif  // MEDIA_SOURCE_H_
+

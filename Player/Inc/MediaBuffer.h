@@ -1,31 +1,28 @@
 #ifndef MEDIA_BUFFER_H_
-#define MEDIA_BUFFER_H_
 
-#include <media/stagefright/foundation/MediaBufferBase.h>
+#define MEDIA_BUFFER_H_
 
 #include <pthread.h>
 
-#include <utils/Errors.h>
-#include <utils/RefBase.h>
 
-namespace android {
+#include <RefBase.h>
 
-struct ABuffer;
-class GraphicBuffer;
 class MediaBuffer;
-class MediaBufferObserver;
 class MetaData;
 
-class MediaBufferObserver {
+class MediaBufferBase {
 public:
-    MediaBufferObserver() {}
-    virtual ~MediaBufferObserver() {}
+    MediaBufferBase() {}
 
-    virtual void signalBufferReturned(MediaBuffer *buffer) = 0;
+    virtual void release() = 0;
+    virtual void add_ref() = 0;
+
+protected:
+    virtual ~MediaBufferBase() {}
 
 private:
-    MediaBufferObserver(const MediaBufferObserver &);
-    MediaBufferObserver &operator=(const MediaBufferObserver &);
+    MediaBufferBase(const MediaBufferBase &);
+    MediaBufferBase &operator=(const MediaBufferBase &);
 };
 
 class MediaBuffer : public MediaBufferBase {
@@ -34,10 +31,6 @@ public:
     MediaBuffer(void *data, size_t size);
 
     MediaBuffer(size_t size);
-
-    MediaBuffer(const sp<GraphicBuffer>& graphicBuffer);
-
-    MediaBuffer(const sp<ABuffer> &buffer);
 
     // Decrements the reference count and returns the buffer to its
     // associated MediaBufferGroup if the reference count drops to 0.
@@ -54,14 +47,10 @@ public:
 
     void set_range(size_t offset, size_t length);
 
-    sp<GraphicBuffer> graphicBuffer() const;
-
     sp<MetaData> meta_data();
 
     // Clears meta data and resets the range to the full extent.
     void reset();
-
-    void setObserver(MediaBufferObserver *group);
 
     // Returns a clone of this MediaBuffer increasing its reference count.
     // The clone references the same data but has its own range and
@@ -74,21 +63,12 @@ protected:
     virtual ~MediaBuffer();
 
 private:
-    friend class MediaBufferGroup;
-    friend class OMXDecoder;
 
-    // For use by OMXDecoder, reference count must be 1, drop reference
-    // count to 0 without signalling the observer.
-    void claim();
-
-    MediaBufferObserver *mObserver;
     MediaBuffer *mNextBuffer;
     int mRefCount;
 
     void *mData;
     size_t mSize, mRangeOffset, mRangeLength;
-    sp<GraphicBuffer> mGraphicBuffer;
-    sp<ABuffer> mBuffer;
 
     bool mOwnsData;
 
@@ -103,6 +83,5 @@ private:
     MediaBuffer &operator=(const MediaBuffer &);
 };
 
-}  // namespace android
-
 #endif  // MEDIA_BUFFER_H_
+

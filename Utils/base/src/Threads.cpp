@@ -23,6 +23,7 @@
 #include <sched.h>
 
 #include <Threads.h>
+#include <List.h>
 
 
 typedef void* (*pthread_entry)(void*);
@@ -74,7 +75,7 @@ int CreateRawThreadEtc(thread_func_t entryFunction,
 Thread::Thread()
     :   mThread((void *)-1),
         mLock(),
-        mStatus(THREAD_NO_ERROR),
+        mStatus(UTILS_NO_ERROR),
         mExitPending(false), mRunning(false)
 {
 }
@@ -85,7 +86,7 @@ Thread::~Thread()
 
 int Thread::readyToRun()
 {
-    return THREAD_NO_ERROR;
+    return UTILS_NO_ERROR;
 }
 
 int Thread::run(const char* name, int priority, int stack)
@@ -95,12 +96,12 @@ int Thread::run(const char* name, int priority, int stack)
 
     if (mRunning) {
         // thread already started
-        return THREAD_INVALID_OPERATION;
+        return UTILS_INVALID_OPERATION;
     }
 
     // reset status and exitPending to their default value, so we can
     // try again after an error happened (either below, or in readyToRun())
-    mStatus = THREAD_NO_ERROR;
+    mStatus = UTILS_NO_ERROR;
     mExitPending = false;
     mThread = (void *)-1;
 
@@ -114,19 +115,19 @@ int Thread::run(const char* name, int priority, int stack)
     
 
     if (res == false) {
-        mStatus = THREAD_UNKNOWN_ERROR;   // something happened!
+        mStatus = UTILS_UNKNOWN_ERROR;   // something happened!
         mRunning = false;
         mThread = (void *)-1;
         mHoldSelf.clear();  // "this" may have gone away after this.
 
-        return THREAD_UNKNOWN_ERROR;
+        return UTILS_UNKNOWN_ERROR;
     }
 
     // Do not refer to mStatus here: The thread is already running (may, in fact
     // already have exited with a valid mStatus result). The NO_ERROR indication
     // here merely indicates successfully starting the thread and does not
     // imply successful termination/execution.
-    return THREAD_NO_ERROR;
+    return UTILS_NO_ERROR;
 
     // Exiting scope of mLock is a memory barrier and allows new thread to run
 }
@@ -145,7 +146,7 @@ int Thread::_threadLoop(void* user)
         if (first) {
             first = false;
             self->mStatus = self->readyToRun();
-            result = (self->mStatus == THREAD_NO_ERROR);
+            result = (self->mStatus == UTILS_NO_ERROR);
 
             if (result && !self->exitPending()) {
                 // Binder threads (and maybe others) rely on threadLoop
@@ -208,7 +209,7 @@ int Thread::requestExitAndWait()
         "Thread object's thread. It's a guaranteed deadlock!",
         this);
 
-        return THREAD_WOULD_BLOCK;
+        return UTILS_WOULD_BLOCK;
     }
 #endif
     mExitPending = true;
@@ -232,7 +233,7 @@ int Thread::join()
         "Thread object's thread. It's a guaranteed deadlock!",
         this);
 
-        return THREAD_WOULD_BLOCK;
+        return UTILS_WOULD_BLOCK;
     }
 
     while (mRunning == true) {
