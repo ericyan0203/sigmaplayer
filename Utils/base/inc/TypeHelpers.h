@@ -18,7 +18,8 @@
 #define _LIB_UTILS_TYPE_HELPERS_H
 
 #include <new>
-#include <utilint.h>
+#include <stdint.h>
+#include <utils.h>
 #include <string.h>
 #include <sys/types.h>
 

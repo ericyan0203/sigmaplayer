@@ -18,7 +18,8 @@
 #define _LIB_UTILS_KEYED_VECTOR_H
 
 #include <assert.h>
-#include <utilint.h>
+#include <stdint.h>
+#include <utils.h>
 #include <sys/types.h>
 
 #include <SortedVector.h>

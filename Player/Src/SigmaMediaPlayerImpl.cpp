@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <utilint.h>
+#include <stdint.h>
+#include <utils.h>
 #include <stdio.h>
 
 #include "SigmaMediaPlayerImpl.h"

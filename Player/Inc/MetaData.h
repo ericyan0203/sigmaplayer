@@ -20,7 +20,8 @@
 
 #include <sys/types.h>
 
-#include <utilint.h>
+#include <stdint.h>
+#include <utils.h>
 
 #include <RefBase.h>
 #include <KeyedVector.h>

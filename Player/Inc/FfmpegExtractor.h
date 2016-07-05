@@ -14,11 +14,21 @@
 #include <Threads.h>
 
 #define INITIAL_STREAM_BUF_SIZE 512 * 1024
-extern "C"{
-#include "avformat.h"
-#include "avcodec.h"
+
+#ifdef __cplusplus  
+extern "C"   
+{  
+#include "libavformat/avformat.h"
+#include "libavcodec/avcodec.h"
 #include "libavutil/avutil.h"
 }
+
+#ifdef WIN32
+#pragma comment(lib,"avutil.lib")  
+#pragma comment(lib,"avcodec.lib")  
+#pragma comment(lib,"avformat.lib")  
+#pragma comment(lib,"swscale.lib") 
+#endif
 
 class String8;
 

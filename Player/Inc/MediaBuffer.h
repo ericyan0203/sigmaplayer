@@ -3,12 +3,10 @@
 #define MEDIA_BUFFER_H_
 
 #include <pthread.h>
-
-
 #include <RefBase.h>
 
-class MediaBuffer;
-class MetaData;
+#include "MetaData.h"
+#include "StrongPointer.h"
 
 class MediaBufferBase {
 public:

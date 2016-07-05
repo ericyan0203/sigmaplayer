@@ -6,10 +6,11 @@
 
 #include <RefBase.h>
 #include <Vector.h>
-#include "SIGM_Types.h"
 
-class MediaBuffer;
-class MetaData;
+#include "SIGM_Types.h"
+#include "MetaData.h"
+#include "StrongPointer.h"
+#include "MediaBuffer.h"
 
 struct MediaSource : public VirtualLightRefBase {
     MediaSource();

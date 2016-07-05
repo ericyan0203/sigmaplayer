@@ -18,7 +18,8 @@
 #define _LIBS_UTILS_VECTOR_H
 
 #include <new>
-#include <utilint.h>
+#include <stdint.h>
+#include <utils.h>
 #include <sys/types.h>
 
 #include <VectorImpl.h>

@@ -18,7 +18,8 @@
 #define _LIBS_UTILS_SHARED_BUFFER_H
 
 
-#include <utilint.h>
+#include <stdint.h>
+#include <utils.h>
 #include <sys/types.h>
 
 // ---------------------------------------------------------------------------
