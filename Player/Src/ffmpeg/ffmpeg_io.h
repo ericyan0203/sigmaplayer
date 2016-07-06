@@ -1,20 +1,23 @@
 #ifndef FFMPEG_IO_H_
 #define FFMPEG_IO_H_
 
+#include <stdint.h>
+
+#if 0
 typedef unsigned int uint32_t;
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
-
+#endif
 
 #define MAKE_FOURCC(a,b,c,d) (uint32_t)((a)|(b)<<8|(c)<<16|(d)<<24)
 
 
 /* Define PUT and GET functions for unaligned memory */
-#define _GST_GET(__data, __idx, __size, __shift) \    
-	(((uint##__size##_t) (((const uint8_t *) (__data))[__idx])) << (__shift))
+#define _GST_GET(__data, __idx, __size, __shift) \
+	(((uint##__size##_t)(((const uint8_t *) (__data))[__idx])) << (__shift))
 
-#define _GST_PUT(__data, __idx, __size, __shift, __num) \    
-	(((uint8_t *) (__data))[__idx] = (((uint##__size##_t) (__num)) >> (__shift)) & 0xff)
+#define _GST_PUT(__data, __idx, __size, __shift, __num) \
+	(((uint8_t *)(__data))[__idx] = (((uint##__size##_t) (__num)) >> (__shift)) & 0xff)
 
 /**
  * GST_READ_UINT64_BE:

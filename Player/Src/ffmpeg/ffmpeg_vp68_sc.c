@@ -1,8 +1,4 @@
 #include "ffmpeg_vp68_sc.h"
-#include <utils/Log.h>
-
-
-#define LOG_TAG "FfmpeVP68SC"
 
 #define MEDIA_OBJ_FORMAT 0x444b4946	
 #define FOURCC_VP68      0x56503830
@@ -18,7 +14,7 @@ int ffmepg_vp68_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
 	unsigned int vp6 = 0;
 	unsigned int payload_length = 0;
 
-	ALOGI("codec Id %x\n",st->codec->codec_id); 
+	printf("codec Id %x\n",st->codec->codec_id); 
 	if(st->codec->codec_id == AV_CODEC_ID_VP6 || st->codec->codec_id == AV_CODEC_ID_VP6F) vp6 = 1;
 
 	if(vp6) payload_length = 0;
@@ -46,7 +42,7 @@ int ffmepg_vp68_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
   
 	offset += 16;
     
-	ALOGI(" width %d height %d\n",st->codec->width,st->codec->height );
+	printf(" width %d height %d\n",st->codec->width,st->codec->height );
 
 	if(!vp6){
 
@@ -73,7 +69,8 @@ int ffmepg_vp68_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
 
 int ffmpeg_vp68_append_picture_header(uint8_t * dataout,AVFormatContext *s, 
 						AVStream *st, uint32_t size)
-{
+{
+
     
     unsigned int offset = 0 ,  i = 0;
     unsigned int length = 0;
@@ -129,7 +126,8 @@ int ffmpeg_vp68_append_slice(uint8_t * dataout,AVFormatContext *s,
 
 	memcpy(dataout,datain,size); //copy all of data directly
       
-	return size; 
+	return size; 
+
 }
 
 

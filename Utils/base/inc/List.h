@@ -53,8 +53,8 @@ protected:
         inline void setPrev(_Node* ptr) { mpPrev = ptr; }
         inline void setNext(_Node* ptr) { mpNext = ptr; }
  
-   //     friend class List;
-   //     friend class _ListIterator;
+ //      friend class List;
+  //     friend class _ListIterator;
         T           mVal;
         _Node*      mpPrev;
         _Node*      mpNext;
@@ -151,7 +151,7 @@ protected:
 
         _NodePtr mpNode;    /* should be private, but older gcc fails */
     private:
-       // friend class List;
+       friend class List;
     };
 
 public:
@@ -275,8 +275,14 @@ public:
         }
         return count;
     }
-
-private:
+	/*
+     * This node plays the role of "pointer to head" and "pointer to tail".
+     * It sits in the middle of a circular list of nodes.  The iterator
+     * runs around the circle until it encounters this one.
+     */
+ public:
+    _Node*      mpMiddle;
+	
     /*
      * I want a _Node but don't need it to hold valid data.  More
      * to the point, I don't want T's constructor to fire, since it
@@ -289,12 +295,6 @@ private:
         mpMiddle->setNext(mpMiddle);
     }
 
-    /*
-     * This node plays the role of "pointer to head" and "pointer to tail".
-     * It sits in the middle of a circular list of nodes.  The iterator
-     * runs around the circle until it encounters this one.
-     */
-    _Node*      mpMiddle;
 };
 
 /*

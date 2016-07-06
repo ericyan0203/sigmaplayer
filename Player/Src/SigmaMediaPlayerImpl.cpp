@@ -26,6 +26,9 @@
 #include "MediaSource.h"
 #include "MetaData.h"
 
+#define DEFAULT_IP  	"127.0.0.1"
+#define DEFAULT_PORT 	0
+
 static int64_t kLowWaterMarkUs = 2000000ll;  // 2secs
 static int64_t kHighWaterMarkUs = 5000000ll;  // 5secs
 static const size_t kLowWaterMarkBytes = 40000;
@@ -41,18 +44,40 @@ SigmaMediaPlayerImpl::SigmaMediaPlayerImpl()
       mDisplayWidth(0),
       mDisplayHeight(0),
       mFlags(0),
-      mExtractorFlags(0){
-      //connect halsys platform
+      mExtractorFlags(0),
+      mIP(DEFAULT_IP),
+      mPort(DEFAULT_PORT){
 
-#if 0
+	//Init Platform
+	mClient.connect(mIP,mPort);
+	
     DataSource::RegisterDefaultSniffers();
-#endif
+
+    reset();
+}
+
+SigmaMediaPlayerImpl::SigmaMediaPlayerImpl(const char * ip, int32_t port)
+    : mUIDValid(false),
+      mDisplayWidth(0),
+      mDisplayHeight(0),
+      mFlags(0),
+      mExtractorFlags(0),
+      mIP(ip),
+      mPort(port){
+
+	//Init Platform
+	mClient.connect(mIP,mPort);
+	
+    DataSource::RegisterDefaultSniffers();
+
     reset();
 }
 
 SigmaMediaPlayerImpl::~SigmaMediaPlayerImpl() {
     reset();
-  //disconnect halsys platform
+
+	//disconnect halsys platform
+  	mClient.disconnect();
 }
 
 void SigmaMediaPlayerImpl::setUID(uid_t uid) {
@@ -83,7 +108,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const char *uri) {
         mStats.mFd = -1;
         mStats.mURI = mUri;
     }
-#if 0
+
     sp<DataSource> dataSource = new FileSource(uri);
 
     Error_Type_e err = dataSource->initCheck();
@@ -95,12 +120,9 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const char *uri) {
     mFileSource = dataSource;
 
     return setDataSource_l(dataSource);
-#else 
-	return SIGM_ErrorNone;
-#endif
 }
 
-#if 0
+
 Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<DataSource> &dataSource) {
     sp<MediaExtractor> extractor = MediaExtractor::Create(dataSource);
 
@@ -127,8 +149,8 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
         int32_t bitrate;
         if (!meta->findInt32(kKeyBitRate, &bitrate)) {
             const char *mime;
-            CHECK(meta->findCString(kKeyMIMEType, &mime));
-            ALOGV("track of type '%s' does not publish bitrate", mime);
+            meta->findCString(kKeyMIMEType, &mime);
+            printf("track of type '%s' does not publish bitrate\n", mime);
 
             totalBitRate = -1;
             break;
@@ -146,7 +168,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
 
     mBitrate = totalBitRate;
 
-    ALOGV("mBitrate = %lld bits/sec", mBitrate);
+    printf("mBitrate = %lld bits/sec", mBitrate);
 
     {
         Mutex::Autolock autoLock(mStatsLock);
@@ -162,12 +184,13 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
         sp<MetaData> meta = extractor->getTrackMetaData(i);
 
         const char *_mime;
-        CHECK(meta->findCString(kKeyMIMEType, &_mime));
+
+		meta->findCString(kKeyMIMEType, &_mime);
 
         String8 mime = String8(_mime);
 
         if (!haveVideo && !strncasecmp(mime.string(), "video/", 6)) {
-            setVideoSource(extractor->getTrack(i));
+           // setVideoSource(extractor->getTrack(i));
             haveVideo = true;
 
             // Set the presentation/display size
@@ -190,7 +213,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
                 stat->mMIME = mime.string();
             }
         } else if (!haveAudio && !strncasecmp(mime.string(), "audio/", 6)) {
-            setAudioSource(extractor->getTrack(i));
+          //  setAudioSource(extractor->getTrack(i));
             haveAudio = true;
             mActiveAudioTrackIndex = i;
 
@@ -202,37 +225,17 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
                     &mStats.mTracks.editItemAt(mStats.mAudioTrackIndex);
                 stat->mMIME = mime.string();
             }
-
-            if (!strcasecmp(mime.string(), MEDIA_MIMETYPE_AUDIO_VORBIS)) {
-                // Only do this for vorbis audio, none of the other audio
-                // formats even support this ringtone specific hack and
-                // retrieving the metadata on some extractors may turn out
-                // to be very expensive.
-                sp<MetaData> fileMeta = extractor->getMetaData();
-                int32_t loop;
-                if (fileMeta != NULL
-                        && fileMeta->findInt32(kKeyAutoLoop, &loop) && loop != 0) {
-                    modifyFlags(AUTO_LOOPING, SET);
-                }
-            }
-        } else if (!strcasecmp(mime.string(), MEDIA_MIMETYPE_TEXT_3GPP)) {
-            addTextSource_l(i, extractor->getTrack(i));
-        }
-    }
-
+   	 	}
+    	}
+   
     if (!haveAudio && !haveVideo) {
-        if (mWVMExtractor != NULL) {
-            return mWVMExtractor->getError();
-        } else {
-            return UNKNOWN_ERROR;
-        }
+         return SIGM_ErrorFailed;
     }
 
     mExtractorFlags = extractor->flags();
 
-    return OK;
+    return SIGM_ErrorNone;
 }
-#endif
 
 void SigmaMediaPlayerImpl::reset() {
     Mutex::Autolock autoLock(mLock);
@@ -247,11 +250,9 @@ void SigmaMediaPlayerImpl::reset_l() {
 
 	printf("reset_l \n");
 
-#if 0
     mAudioTrack.clear();
     mVideoTrack.clear();
     mExtractor.clear();
-#endif
 
     mDurationUs = -1;
     modifyFlags(0, ASSIGN);
@@ -264,9 +265,7 @@ void SigmaMediaPlayerImpl::reset_l() {
 
     mUri.setTo("");
 
-#if 0
     mFileSource.clear();
-#endif
 
     mBitrate = -1;
  //   mLastVideoTimeUs = -1;
@@ -502,11 +501,7 @@ Error_Type_e SigmaMediaPlayerImpl::selectTrack(size_t trackIndex, bool select) {
 }
 
 size_t SigmaMediaPlayerImpl::countTracks() const {
-#if 0
 	return mExtractor->countTracks();
-#else
-	return 0;
-#endif
 }
 
 void SigmaMediaPlayerImpl::modifyFlags(unsigned value, FlagMode mode) {

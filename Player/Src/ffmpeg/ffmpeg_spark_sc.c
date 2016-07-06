@@ -1,8 +1,4 @@
 #include "ffmpeg_spark_sc.h"
-#include <utils/Log.h>
-
-
-#define LOG_TAG "FfmpeSparkSC"
 
 
 int ffmepg_spark_append_sequence_header(uint8_t * dataout,AVFormatContext *s, 
@@ -34,7 +30,7 @@ int ffmepg_spark_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
   
 	offset += 16;
 
-	ALOGI(" width %d height %d\n",st->codec->width,st->codec->height );
+	printf(" width %d height %d\n",st->codec->width,st->codec->height );
 
     return offset;
      	
@@ -42,7 +38,8 @@ int ffmepg_spark_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
 
 int ffmpeg_spark_append_picture_header(uint8_t * dataout,AVFormatContext *s, 
 						AVStream *st, uint32_t size)
-{
+{
+
     
     unsigned int offset = 0 ,  i = 0;
     unsigned int length = 0;
@@ -85,7 +82,8 @@ int ffmpeg_spark_append_slice(uint8_t * dataout,AVFormatContext *s,
 
 	memcpy(dataout,datain,size); //copy all of data directly
       
-	return size; 
+	return size; 
+
 }
 
 

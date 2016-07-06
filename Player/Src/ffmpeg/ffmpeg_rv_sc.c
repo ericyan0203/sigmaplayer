@@ -1,8 +1,4 @@
 #include "ffmpeg_rv_sc.h"
-#include <utils/Log.h>
-
-
-#define LOG_TAG "FfmpeRVSC"
 
 #define FOURCC_RV30 MAKE_FOURCC('R','V','3','0') //rv8
 #define FOURCC_RV40 MAKE_FOURCC('R','V','4','0') //rv9+10
@@ -11,12 +7,14 @@ static int get_slice_offset(const uint8_t *buf, int n)
 {   
    int ret = GST_READ_UINT32_LE(buf + n*8 - 4);
    if(ret == 0x00000001){
-       return  GST_READ_UINT32_LE(buf + n*8);
+       return 
+ GST_READ_UINT32_LE(buf + n*8);
    }
-   else if( ret == 0x01000000){
+   else if( ret == 0x01000000){
+
        return   GST_READ_UINT32_BE(buf + n*8); 
    }else{
-       ALOGI("Invalid ret %x return le anyway \n",ret); 
+       printf("Invalid ret %x return le anyway \n",ret); 
        return   GST_READ_UINT32_LE(buf + n*8);
    }
 
@@ -27,7 +25,8 @@ static int get_slice_offset(const uint8_t *buf, int n)
 	
 
 int ffmpeg_rv_parse_slice_info(uint8_t * datain,VSliceInfo *info)
-{
+{
+
       int offset = 0;
       int i = 0;
 	  uint8_t * slice_hdr;
@@ -77,7 +76,7 @@ int ffmepg_rv_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
 		dataout[8] = 0x29;
 	}
 	else {
-		ALOGI("append sequence codec %x why here \n",st->codec->codec_id);
+		printf("append sequence codec %x why here \n",st->codec->codec_id);
 		dataout[8] = 0x00; //should not be here
 	}
 
@@ -92,7 +91,7 @@ int ffmepg_rv_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
   
 	offset += 16;
 
-	ALOGI("mediaobject 0x%x  codec_tag %x width %d height %d\n",st->codec->media_object_format,st->codec->codec_tag,st->codec->width,st->codec->height );
+	printf("mediaobject 0x%x  codec_tag %x width %d height %d\n",st->codec->media_object_format,st->codec->codec_tag,st->codec->width,st->codec->height );
 
     GST_WRITE_UINT32_BE(dataout+offset, st->codec->chunk_size);
 	offset+=4;
@@ -125,7 +124,7 @@ int ffmepg_rv_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
 
     framerate = st->codec->fps;
 
-	ALOGW("frame rate %x  bpp %x pad %x x %x",st->codec->fps,st->codec->bpp,st->codec->pad_width,st->codec->pad_height);
+	printf("frame rate %x  bpp %x pad %x x %x",st->codec->fps,st->codec->bpp,st->codec->pad_width,st->codec->pad_height);
 	
 	GST_WRITE_UINT32_BE(dataout+offset, framerate);
 	offset += 4;        
@@ -134,14 +133,15 @@ int ffmepg_rv_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
 		offset+=st->codec->extradata_size;
 	}
 
-	ALOGI("chunk size %d offset %d extra %d\n", st->codec->chunk_size,(offset-16),st->codec->extradata_size);
+	printf("chunk size %d offset %d extra %d\n", st->codec->chunk_size,(offset-16),st->codec->extradata_size);
 	return offset;
      	
 }
 
 int ffmpeg_rv_append_picture_header(uint8_t * dataout,AVFormatContext *s, 
 						AVStream *st, VSliceInfo * info ,uint32_t size)
-{
+{
+
     
     unsigned int offset = 0 ,  i = 0;
     unsigned int length = 0;
@@ -166,7 +166,7 @@ int ffmpeg_rv_append_picture_header(uint8_t * dataout,AVFormatContext *s,
 	   dataout[8] = 0x29;
     }
     else {
-	   ALOGI("append picture codec %x why here \n",st->codec->codec_id);
+	   printf("append picture codec %x why here \n",st->codec->codec_id);
 	   dataout[8] = 0x00; //should not be here
     }
 
@@ -208,7 +208,8 @@ int ffmpeg_rv_append_picture_header(uint8_t * dataout,AVFormatContext *s,
 
 int ffmpeg_rv_append_slice(uint8_t * dataout,AVFormatContext *s, 
 						AVStream *st, VSliceInfo * info,uint8_t* datain,uint32_t size)
-{
+{
+
     
     unsigned int offset = 0 , i = 0;
     unsigned int packet_length = 0;
@@ -246,7 +247,7 @@ int ffmpeg_rv_append_slice(uint8_t * dataout,AVFormatContext *s,
 		    dataout[8 + offset] = 0x29;
 	    }
 	    else {
-		    ALOGI("append slice codec %x why here \n",st->codec->codec_id);
+		    printf("append slice codec %x why here \n",st->codec->codec_id);
 		    dataout[8 + offset] = 0x00; //should not be here
 	    }
 

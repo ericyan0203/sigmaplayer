@@ -1,5 +1,6 @@
 EXPORTS
     postproc_configuration
+    postproc_ffversion DATA
     postproc_license
     postproc_version
     pp_free_context

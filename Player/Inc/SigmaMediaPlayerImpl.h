@@ -3,15 +3,17 @@
 
 #include "SIGM_Types.h"
 
-
 #include "ISigmaPlayer.h"
 #include "DataSource.h"
-
+#include "HalSysClient.h"
 #include "MetaData.h"
 #include <Threads.h>
+#include "MediaSource.h"
+#include "MediaExtractor.h"
 
 struct SigmaMediaPlayerImpl {
     SigmaMediaPlayerImpl();
+	SigmaMediaPlayerImpl(const char * ip, int32_t port);
     ~SigmaMediaPlayerImpl();
 
     void setUID(uid_t uid);
@@ -83,17 +85,16 @@ private:
 	
     String8 mUri;
 
-#if 0
+	String8 mIP;
+	uint32_t mPort;
+	
     sp<DataSource> mFileSource;
 
     sp<MediaSource> mVideoTrack;
-#endif
+	sp<MediaSource> mAudioTrack;
 
     ssize_t mActiveAudioTrackIndex;
-
-#if 0
-	sp<MediaSource> mAudioTrack;
-#endif
+	ssize_t mActiveVideoTrackIndex;
 
     int64_t mDurationUs;
 
@@ -120,18 +121,15 @@ private:
     Error_Type_e play_l();
 	Error_Type_e stop_l();
 
-#if 0
-    MediaBuffer *mVideoBuffer;
-
-    
+    MediaBuffer *mVideoBuffer;    
     sp<MediaExtractor> mExtractor;
-#endif
+
+	HalSysClient mClient;
 
     Error_Type_e setDataSource_l(const char *uri);
-#if 0
     Error_Type_e setDataSource_l(const sp<DataSource> &dataSource);
     Error_Type_e setDataSource_l(const sp<MediaExtractor> &extractor);
-#endif
+
 
     void reset_l();
     Error_Type_e seekTo_l(int64_t timeUs);

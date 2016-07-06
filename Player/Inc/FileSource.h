@@ -3,19 +3,19 @@
 #define FILE_SOURCE_H_
 
 #include <stdio.h>
-
-#include "DataSource.h"
 #include <Threads.h>
+#include "DataSource.h"
+#include "SIGM_Types.h"
 
 class FileSource : public DataSource {
 public:
     FileSource(const char *filename);
 
-    virtual status_t initCheck() const;
+    virtual Error_Type_e initCheck() const;
 
     virtual ssize_t readAt(off64_t offset, void *data, size_t size);
 
-    virtual status_t getSize(off64_t *size);
+    virtual Error_Type_e getSize(off64_t *size);
 
 	virtual String8 getUri(); 
 
@@ -23,7 +23,7 @@ protected:
     virtual ~FileSource();
 
 private:
-    int mFd;
+    FILE*  mFd;
     int64_t mOffset;
     int64_t mLength;
     Mutex mLock;

@@ -22,6 +22,7 @@ extern "C"
 #include "libavcodec/avcodec.h"
 #include "libavutil/avutil.h"
 }
+#endif
 
 #ifdef WIN32
 #pragma comment(lib,"avutil.lib")  

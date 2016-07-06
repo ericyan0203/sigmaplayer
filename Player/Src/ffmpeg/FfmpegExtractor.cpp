@@ -22,11 +22,14 @@
 #include "MetaData.h"
 #include "MediaDefs.h"
 #include <String8.h>
-
+#include <string.h>
+#include <utils.h>
 extern "C" {
+#if 1
 #include "ffmpeg/ffmpeg_rv_sc.h"
-#include "ffmpeg/fmpeg_vp68_sc.h"
+#include "ffmpeg/ffmpeg_vp68_sc.h"
 #include "ffmpeg/ffmpeg_spark_sc.h"
+#endif
 }
 #include <ctype.h>
 
@@ -91,7 +94,7 @@ struct FfmpegSource : public MediaSource {
 
 		virtual sp<MetaData> getFormat();
 
-		virtual status_t read(
+		virtual Error_Type_e read(
 						MediaBuffer **buffer, const ReadOptions *options);
 
 		private:
@@ -368,6 +371,7 @@ typedef enum DIVXCode{
 		DIVX_CODE_SLICE,
 		DIVX_CODE_ENDOFSEQ
 }DIVXCode;
+
 static int construct_divx_payload_header(
 				AVFormatContext *s, 
 				AVStream *st,
@@ -638,7 +642,7 @@ static int construct_vc1_sequence_header(AVFormatContext *s, AVStream *st)
 	}/*wmv contains only simple and main profile */
 	else if (st->codec->codec_id  == AV_CODEC_ID_WMV3){
 		if(construct_vc1_codec_specific_sequence_header(s,st,avctx->extradata,avctx->extradata_size)<0){
-			ALOGI(" ********************************** construct_vc1_codec_specific_sequence_header  failed \n");
+			printf(" ********************************** construct_vc1_codec_specific_sequence_header  failed \n");
 			FUN_END
 			return -1;
 		}
@@ -852,7 +856,7 @@ int64_t FfmpegExtractor::computeTrackDuration(int track){
 }
 
 int FfmpegExtractor::addTracks() {
-		ALOGI("%s %d\n",__FUNCTION__,__LINE__);
+		printf("%s %d\n",__FUNCTION__,__LINE__);
 
 		//=================================================FFMPEG======================================================
 		unsigned long   uAvgDataRate = 0,uCount =0;
@@ -1281,7 +1285,7 @@ int FfmpegExtractor::addTracks() {
 						meta->setInt32(kKeyChannelCount, pFormatCtx->streams[uCount]->codec->channels);
 						if(-1 == mCurrentAudioTrack){
 								mCurrentAudioTrack = uCount; //Default to first audio track
-								prrintf("mCurrentAudioTrack:%d\n",mCurrentAudioTrack);
+								printf("mCurrentAudioTrack:%d\n",mCurrentAudioTrack);
 						}
 				}
 				else {
@@ -1640,6 +1644,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 						    memcpy(data,encFrame.data,encFrame.size);
 							buffer->set_range(0, encFrame.size);
 						}
+						#if 1
 						else if((AV_CODEC_ID_MSMPEG4V3 == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id) ||
 										(AV_CODEC_ID_MSMPEG4V2 == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id)||
 										(AV_CODEC_ID_MSMPEG4V1 == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id)/*||
@@ -1926,6 +1931,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 							buffer->set_range(0, offset);
 							
 						}
+						#endif
 						else{
 								//Nothing special needed
 								memcpy(data,encFrame.data,encFrame.size);
@@ -2029,14 +2035,13 @@ bool FfmpegExtractor::mIsAvRegistered = false;
 Vector<FfmpegExtractor::avcontext> FfmpegExtractor::mContexts;
 
 bool SniffFfmpeg(
-				const sp<DataSource> &source, String8 *mimeType, float *confidence,
-				sp<AMessage> *) {
+				const sp<DataSource> &source, String8 *mimeType, float *confidence) {
 		//char streamBuf[400];
 		String8 streamBuf;
 		AVFormatContext *pFormatCtx = NULL;
 		int ret = 0;
 
-		mimeType->setTo(MEDIA_MIMETYPE_CONTAINER_WMV);
+		mimeType->setTo(MEDIA_MIMETYPE_CONTAINER_FFMPEG);
 		if(!bIsAvRegistered){
 			    printf("register all\n");
 				av_register_all();
@@ -2059,7 +2064,7 @@ bool SniffFfmpeg(
 				printf("sniff pass with 0.0001 confidence by ffmpeg\n");
 				if(pFormatCtx){
 
-						bool  IsSupportedVideoFormat = false, IsMpegAudioFound= false;
+						bool  IsSupportedVideoFormat = false, IsSupportedAudioFormat= false;
 						//  to change confidence level to bypass mp3 extractor in case mpeg audio with supported video format found
 						/* Retrieve stream information */
 						if((ret = avformat_find_stream_info(pFormatCtx,NULL))<0)
@@ -2094,6 +2099,8 @@ bool SniffFfmpeg(
 												case    AV_CODEC_ID_VP6F:
 												case    AV_CODEC_ID_VP8:
 												case    AV_CODEC_ID_FLV1:
+												case    AV_CODEC_ID_VP9:
+												case    AV_CODEC_ID_H265:
 														printf("SniffFfmpeg FOUND supported video format %x \n",pFormatCtx->streams[uCount]->codec->codec_id);
 														IsSupportedVideoFormat = true;
 														break;
@@ -2120,7 +2127,7 @@ bool SniffFfmpeg(
 												case  AV_CODEC_ID_EAC3:	
 												case  AV_CODEC_ID_COOK:	
 														printf("SniffFfmpeg FOUND MPEG AUdio format %x \n",pFormatCtx->streams[uCount]->codec->codec_id);						 	
-														IsMpegAudioFound = true;
+														IsSupportedAudioFormat = true;
 														break;
 
 												default:
@@ -2130,11 +2137,9 @@ bool SniffFfmpeg(
 
 								}
 						}			
-						if(IsMpegAudioFound && IsSupportedVideoFormat)
+						if(IsSupportedAudioFormat || IsSupportedVideoFormat)
 						{
-								//Naresh @ Increase confidence level to bypass mp3 extractor creation
-								//confidence should be more than mp3extractor & less than other extractors
-								printf("SniffFfmpeg Increasing FFMPEG Confidence level \n");						 	
+								printf("SniffFfmpeg Increasing FFMPEG Confidence level video supported %d audio supported %d\n",IsSupportedAudioFormat,IsSupportedVideoFormat);						 	
 
 								*confidence = 0.3f;	     		
 						}

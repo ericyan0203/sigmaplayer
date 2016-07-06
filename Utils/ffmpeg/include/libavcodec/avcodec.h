@@ -2996,6 +2996,20 @@ typedef struct AVCodecContext {
      * - decoding: unused.
      */
     uint16_t *chroma_intra_matrix;
+	
+	/* __TMOD  only for RV*/
+    unsigned int     chunk_size;
+    unsigned int     media_object_format;
+	unsigned short   bpp;
+	unsigned short   pad_width;
+	unsigned short   pad_height;
+	unsigned int     fps;
+	unsigned int     flavor;
+
+/*__TMOD end */
+/* __TMOD  only for AVI H264*/
+    unsigned int     extradata_invalid;     
+/*__TMOD end */
 } AVCodecContext;
 
 AVRational av_codec_get_pkt_timebase         (const AVCodecContext *avctx);

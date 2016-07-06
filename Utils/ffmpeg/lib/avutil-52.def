@@ -377,6 +377,7 @@ EXPORTS
     av_update_lls
     av_usleep
     av_utf8_decode
+    av_util_ffversion DATA
     av_vbprintf
     av_vlog
     av_write_image_line

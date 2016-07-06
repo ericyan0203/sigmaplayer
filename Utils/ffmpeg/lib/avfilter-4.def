@@ -1,5 +1,4 @@
 EXPORTS
-    av_2_vs_pixel_format
     av_abuffersink_params_alloc
     av_buffersink_get_buffer_ref
     av_buffersink_get_frame
@@ -17,6 +16,7 @@ EXPORTS
     av_buffersrc_buffer
     av_buffersrc_get_nb_failed_requests
     av_buffersrc_write_frame
+    av_filter_ffversion DATA
     av_filter_next
     avfilter_add_matrix
     avfilter_all_channel_layouts DATA

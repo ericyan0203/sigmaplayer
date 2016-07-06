@@ -6,7 +6,8 @@
 
 struct SigmaMediaPlayer : public ISigmaPlayer {
     SigmaMediaPlayer();
-
+	SigmaMediaPlayer(const char * ip, uint32_t port);
+	virtual ~SigmaMediaPlayer();
 #if 0
     virtual Error_Type_e setUID(uid_t uid);
 #endif
@@ -22,10 +23,7 @@ struct SigmaMediaPlayer : public ISigmaPlayer {
     virtual Error_Type_e reset();
     virtual Error_Type_e setParameter(int key, const void * request);
     virtual Error_Type_e getParameter(int key, void *reply);
-
-protected:
-    virtual ~SigmaMediaPlayer();
-
+	
 private:
     SigmaMediaPlayerImpl *mPlayer;
 	

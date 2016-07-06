@@ -3,11 +3,11 @@
 
 #define SPARK_GENERIC_SC_LENGTH  12
 
-#include "avformat.h"
-#include "avcodec.h"
-#include "avutil.h"
+#include "libavformat/avformat.h"
+#include "libavcodec/avcodec.h"
+#include "libavutil/avutil.h"
 
-#include "ffmpeg_io.h"
+#include "./ffmpeg_io.h"
 
 
 
@@ -16,7 +16,8 @@ int ffmepg_spark_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
 
 
 int ffmpeg_spark_append_picture_header(uint8_t * dataout,AVFormatContext *s, 
-						AVStream *st, uint32_t size);
+						AVStream *st, uint32_t size);
+
 
 
 int ffmpeg_spark_append_slice(uint8_t * dataout,AVFormatContext *s, 

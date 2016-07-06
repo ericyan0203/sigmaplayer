@@ -91,6 +91,7 @@ EXPORTS
     swr_alloc_set_opts
     swr_convert
     swr_drop_output
+    swr_ffversion DATA
     swr_free
     swr_get_class
     swr_get_delay

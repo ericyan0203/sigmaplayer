@@ -37,4 +37,9 @@ typedef  signed int status_t;
 typedef _int64 off64_t;
 typedef unsigned int uid_t;
 
+#if defined(_MSC_VER)
+#define strcasecmp   stricmp
+#define strncasecmp  strnicmp 
+#endif
+
 #endif 

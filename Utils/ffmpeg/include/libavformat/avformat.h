@@ -1071,6 +1071,41 @@ enum AVDurationEstimationMethod {
 
 typedef struct AVFormatInternal AVFormatInternal;
 
+//__TMOD starts
+#define PADDING_VC1_S_M_PRO  48
+typedef struct VC1Frame{
+   uint8_t seq_startcode_header[4];
+   uint8_t seq_startcode_header_size;
+
+   uint8_t seq_payload_header[12];
+   uint8_t seq_payload_header_size;
+
+   uint8_t frame_payload_header[12];
+   uint8_t frame_payload_header_size;
+
+   uint8_t entry_point_startcode_header[4];
+   uint8_t entry_point_startcode_header_size;
+   
+   uint8_t frame_startcode_header[4];
+   uint8_t frame_startcode_header_size;
+
+   uint8_t  seq_header[100] ; 
+   uint8_t seq_header_size;
+
+   uint8_t  entry_point_header[10] ;
+   uint8_t entry_point_header_size;
+      
+   uint8_t  frame_header[8] ;
+   uint8_t  frame_header_size;
+
+   uint8_t keyFrame ;
+   uint8_t firstFrame;
+   int32_t profile;   
+   int32_t version;   
+}VC1Frame;
+//__TMOD ends
+
+
 /**
  * Format I/O context.
  * New fields can be added to the end with minor version bumps.
@@ -1548,6 +1583,12 @@ typedef struct AVFormatContext {
      * Muxing: set by user via AVOptions (NO direct access)
      */
     int64_t output_ts_offset;
+	
+	//__TMOD starts 
+    VC1Frame VC1Data;
+    uint64_t nb_packets;                 ///< how many packets are there in the file, invalid if broadcasting
+    unsigned char has_startcode;
+//__TMOD ends
 } AVFormatContext;
 
 int av_format_get_probe_score(const AVFormatContext *s);

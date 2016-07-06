@@ -15,6 +15,7 @@ EXPORTS
     av_find_program_from_stream
     av_find_stream_info
     av_fmt_ctx_get_duration_estimation_method
+    av_format_ffversion DATA
     av_format_get_audio_codec
     av_format_get_control_message_cb
     av_format_get_metadata_header_padding
@@ -160,5 +161,4 @@ EXPORTS
     ffurl_write
     get_codec_guid
     get_crc_table
-    get_extension
     url_feof

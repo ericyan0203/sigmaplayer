@@ -11,7 +11,6 @@
 #include <Threads.h>
 #include <String8.h>
 
-
 class DataSource : public VirtualLightRefBase {
 public:
     enum Flags {
@@ -26,7 +25,7 @@ public:
    
     DataSource() {}
 
-    virtual status_t initCheck() const = 0;
+    virtual Error_Type_e initCheck() const = 0;
 
     virtual ssize_t readAt(off64_t offset, void *data, size_t size) = 0;
 
@@ -37,7 +36,7 @@ public:
     bool getUInt64(off64_t offset, uint64_t *x);
 
     // May return ERROR_UNSUPPORTED.
-    virtual status_t getSize(off64_t *size);
+    virtual Error_Type_e getSize(off64_t *size);
 
     virtual uint32_t flags() {
         return 0;
