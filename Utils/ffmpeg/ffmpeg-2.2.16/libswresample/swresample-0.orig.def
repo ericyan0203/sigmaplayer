@@ -1,0 +1,107 @@
+EXPORTS
+    ff_float_to_int16_a_sse2 @1 DATA
+    ff_float_to_int16_u_sse2 @2 DATA
+    ff_float_to_int32_a_sse2 @3 DATA
+    ff_float_to_int32_u_sse2 @4 DATA
+    ff_int16_to_float_a_sse2 @5 DATA
+    ff_int16_to_float_u_sse2 @6 DATA
+    ff_int16_to_int32_a_mmx @7 DATA
+    ff_int16_to_int32_a_sse2 @8 DATA
+    ff_int16_to_int32_u_mmx @9 DATA
+    ff_int16_to_int32_u_sse2 @10 DATA
+    ff_int32_to_float_a_avx @11 DATA
+    ff_int32_to_float_a_sse2 @12 DATA
+    ff_int32_to_float_u_avx @13 DATA
+    ff_int32_to_float_u_sse2 @14 DATA
+    ff_int32_to_int16_a_mmx @15 DATA
+    ff_int32_to_int16_a_sse2 @16 DATA
+    ff_int32_to_int16_u_mmx @17 DATA
+    ff_int32_to_int16_u_sse2 @18 DATA
+    ff_log2_tab @19 DATA
+    ff_mix_1_1_a_float_avx @20 DATA
+    ff_mix_1_1_a_float_sse @21 DATA
+    ff_mix_1_1_a_int16_mmx @22 DATA
+    ff_mix_1_1_a_int16_sse2 @23 DATA
+    ff_mix_1_1_u_float_avx @24 DATA
+    ff_mix_1_1_u_float_sse @25 DATA
+    ff_mix_1_1_u_int16_mmx @26 DATA
+    ff_mix_1_1_u_int16_sse2 @27 DATA
+    ff_mix_2_1_a_float_avx @28 DATA
+    ff_mix_2_1_a_float_sse @29 DATA
+    ff_mix_2_1_a_int16_mmx @30 DATA
+    ff_mix_2_1_a_int16_sse2 @31 DATA
+    ff_mix_2_1_u_float_avx @32 DATA
+    ff_mix_2_1_u_float_sse @33 DATA
+    ff_mix_2_1_u_int16_mmx @34 DATA
+    ff_mix_2_1_u_int16_sse2 @35 DATA
+    ff_pack_2ch_float_to_int16_a_sse2 @36 DATA
+    ff_pack_2ch_float_to_int16_u_sse2 @37 DATA
+    ff_pack_2ch_float_to_int32_a_sse2 @38 DATA
+    ff_pack_2ch_float_to_int32_u_sse2 @39 DATA
+    ff_pack_2ch_int16_to_float_a_sse2 @40 DATA
+    ff_pack_2ch_int16_to_float_u_sse2 @41 DATA
+    ff_pack_2ch_int16_to_int16_a_sse2 @42 DATA
+    ff_pack_2ch_int16_to_int16_u_sse2 @43 DATA
+    ff_pack_2ch_int16_to_int32_a_sse2 @44 DATA
+    ff_pack_2ch_int16_to_int32_u_sse2 @45 DATA
+    ff_pack_2ch_int32_to_float_a_sse2 @46 DATA
+    ff_pack_2ch_int32_to_float_u_sse2 @47 DATA
+    ff_pack_2ch_int32_to_int16_a_sse2 @48 DATA
+    ff_pack_2ch_int32_to_int16_u_sse2 @49 DATA
+    ff_pack_2ch_int32_to_int32_a_sse2 @50 DATA
+    ff_pack_2ch_int32_to_int32_u_sse2 @51 DATA
+    ff_pack_6ch_float_to_float_a_avx @52 DATA
+    ff_pack_6ch_float_to_float_a_mmx @53 DATA
+    ff_pack_6ch_float_to_float_a_sse4 @54 DATA
+    ff_pack_6ch_float_to_float_u_avx @55 DATA
+    ff_pack_6ch_float_to_float_u_mmx @56 DATA
+    ff_pack_6ch_float_to_float_u_sse4 @57 DATA
+    ff_pack_6ch_float_to_int32_a_avx @58 DATA
+    ff_pack_6ch_float_to_int32_a_sse4 @59 DATA
+    ff_pack_6ch_float_to_int32_u_avx @60 DATA
+    ff_pack_6ch_float_to_int32_u_sse4 @61 DATA
+    ff_pack_6ch_int32_to_float_a_avx @62 DATA
+    ff_pack_6ch_int32_to_float_a_sse4 @63 DATA
+    ff_pack_6ch_int32_to_float_u_avx @64 DATA
+    ff_pack_6ch_int32_to_float_u_sse4 @65 DATA
+    ff_resample_int16_rounder @66 DATA
+    ff_unpack_2ch_float_to_int16_a_sse2 @67 DATA
+    ff_unpack_2ch_float_to_int16_u_sse2 @68 DATA
+    ff_unpack_2ch_float_to_int32_a_sse2 @69 DATA
+    ff_unpack_2ch_float_to_int32_u_sse2 @70 DATA
+    ff_unpack_2ch_int16_to_float_a_sse2 @71 DATA
+    ff_unpack_2ch_int16_to_float_a_ssse3 @72 DATA
+    ff_unpack_2ch_int16_to_float_u_sse2 @73 DATA
+    ff_unpack_2ch_int16_to_float_u_ssse3 @74 DATA
+    ff_unpack_2ch_int16_to_int16_a_sse2 @75 DATA
+    ff_unpack_2ch_int16_to_int16_a_ssse3 @76 DATA
+    ff_unpack_2ch_int16_to_int16_u_sse2 @77 DATA
+    ff_unpack_2ch_int16_to_int16_u_ssse3 @78 DATA
+    ff_unpack_2ch_int16_to_int32_a_sse2 @79 DATA
+    ff_unpack_2ch_int16_to_int32_a_ssse3 @80 DATA
+    ff_unpack_2ch_int16_to_int32_u_sse2 @81 DATA
+    ff_unpack_2ch_int16_to_int32_u_ssse3 @82 DATA
+    ff_unpack_2ch_int32_to_float_a_sse2 @83 DATA
+    ff_unpack_2ch_int32_to_float_u_sse2 @84 DATA
+    ff_unpack_2ch_int32_to_int16_a_sse2 @85 DATA
+    ff_unpack_2ch_int32_to_int16_u_sse2 @86 DATA
+    ff_unpack_2ch_int32_to_int32_a_sse2 @87 DATA
+    ff_unpack_2ch_int32_to_int32_u_sse2 @88 DATA
+    swr_alloc @89
+    swr_alloc_set_opts @90
+    swr_convert @91
+    swr_drop_output @92
+    swr_ffversion @93 DATA
+    swr_free @94
+    swr_get_class @95
+    swr_get_delay @96
+    swr_init @97
+    swr_inject_silence @98
+    swr_is_initialized @99
+    swr_next_pts @100
+    swr_set_channel_mapping @101
+    swr_set_compensation @102
+    swr_set_matrix @103
+    swresample_configuration @104
+    swresample_license @105
+    swresample_version @106
