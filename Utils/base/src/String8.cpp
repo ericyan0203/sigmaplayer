@@ -86,7 +86,7 @@ static char* allocFromUTF8(const char* in, size_t len)
             return NULL;
         }
         SharedBuffer* buf = SharedBuffer::alloc(len+1);
-        printf("Unable to allocate shared buffer\n");
+        
         if (buf) {
             char* str = (char*)buf->data();
             memcpy(str, in, len);

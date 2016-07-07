@@ -229,7 +229,8 @@ FfmpegExtractor::FfmpegExtractor(const sp<DataSource> &source)
 		mAudioLastPts(-1),
 		mFirstFrame(0),
 		mVListSize(0),
-		mAListSize(0){
+		mAListSize(0),
+		mVideoCodecSpecificDataSize(0){
 
 				addTracks();
 		}

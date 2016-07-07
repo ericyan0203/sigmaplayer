@@ -22,6 +22,8 @@
 #include <string.h> // for strcmp
 #include <stdarg.h>
 
+void initialize_string8();
+void terminate_string8();
 
 //! This is a string holding UTF-8 characters. Does not allow the value more
 // than 0x10FFFF, which is not valid unicode codepoint.

@@ -66,7 +66,7 @@ SigmaMediaPlayerImpl::SigmaMediaPlayerImpl(const char * ip, int32_t port)
       mPort(port){
 
 	//Init Platform
-	mClient.connect(mIP,mPort);
+	//mClient.connect(mIP,mPort);
 	
     DataSource::RegisterDefaultSniffers();
 
@@ -77,7 +77,7 @@ SigmaMediaPlayerImpl::~SigmaMediaPlayerImpl() {
     reset();
 
 	//disconnect halsys platform
-  	mClient.disconnect();
+    //mClient.disconnect();
 }
 
 void SigmaMediaPlayerImpl::setUID(uid_t uid) {

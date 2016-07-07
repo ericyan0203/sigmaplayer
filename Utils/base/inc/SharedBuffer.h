@@ -130,4 +130,4 @@ bool SharedBuffer::onlyOwner() const {
     return (mRefs == 1);
 }
 
-#endif // ANDROID_VECTOR_H
+#endif //SHARED_BUFFER
