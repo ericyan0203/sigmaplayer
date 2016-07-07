@@ -194,7 +194,7 @@ enum {
     kTypeD263        = 'd263',
 };
 
-class MetaData : public VirtualLightRefBase {
+class MetaData : /*public VirtualLightRefBase*/public virtual RefBase {
 public:
     MetaData();
     MetaData(const MetaData &from);

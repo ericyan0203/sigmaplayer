@@ -130,6 +130,9 @@ private:
     Error_Type_e setDataSource_l(const sp<DataSource> &dataSource);
     Error_Type_e setDataSource_l(const sp<MediaExtractor> &extractor);
 
+	void setVideoSource(sp<MediaSource> source);
+	void setAudioSource(sp<MediaSource> source);
+
 
     void reset_l();
     Error_Type_e seekTo_l(int64_t timeUs);

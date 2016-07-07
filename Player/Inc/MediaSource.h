@@ -12,7 +12,7 @@
 #include "StrongPointer.h"
 #include "MediaBuffer.h"
 
-struct MediaSource : public VirtualLightRefBase {
+struct MediaSource : public virtual RefBase   {
     MediaSource();
 
     // To be called before any other methods on this object, except

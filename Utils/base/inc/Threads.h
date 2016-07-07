@@ -55,7 +55,7 @@ enum {
 };
 
 
-class Thread :  public VirtualLightRefBase
+class Thread :  /*public VirtualLightRefBase*/public virtual RefBase
 {
 public:
     // Create a Thread object, but doesn't create or start the associated

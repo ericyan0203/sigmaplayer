@@ -115,6 +115,7 @@ struct FfmpegSource : public MediaSource {
 		size_t mTrackIndex;
 		size_t mDemuxRefTrackIndex;
 		Type mType;
+		//virtual ~FfmpegSource(){};
 		FfmpegSource(const FfmpegSource &);
 		FfmpegSource &operator=(const FfmpegSource &);
 };
@@ -127,7 +128,7 @@ FfmpegSource::FfmpegSource(
 		mType(OTHER){
 				const char *mime;
 				mExtractor->mTracks.itemAt(trackindex).mMeta->findCString(kKeyMIMEType, &mime);
-				if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)) {
+				if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
 						mType = AVC;
 				} else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AAC)) {
 						mType = AAC;

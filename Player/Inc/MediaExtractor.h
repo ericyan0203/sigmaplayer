@@ -8,7 +8,7 @@
 #include "MetaData.h"
 
 
-class MediaExtractor : public VirtualLightRefBase{
+class MediaExtractor : /*public VirtualLightRefBase*/public virtual RefBase{
 public:
     static sp<MediaExtractor> Create(const sp<DataSource> &source, const char *mime = NULL);
 

@@ -6,7 +6,7 @@
 
 #include "SIGM_Types.h"
 
-class ISigmaPlayer: public VirtualLightRefBase {
+class ISigmaPlayer: /*public VirtualLightRefBase*/public virtual RefBase {
 public:
     ISigmaPlayer(){};                                                     \
     virtual ~ISigmaPlayer(){}; 

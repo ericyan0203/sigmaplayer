@@ -19,6 +19,7 @@
 
 #include <sys/types.h>
 #include <stdlib.h>
+template<typename T> class wp;
 
 #define COMPARE(_op_)                                           \
 inline bool operator _op_ (const sp<T>& o) const {              \
@@ -35,6 +36,13 @@ template<typename U>                                            \
 inline bool operator _op_ (const U* o) const {                  \
     return m_ptr _op_ o;                                        \
 }                                                               \
+inline bool operator _op_ (const wp<T>& o) const {              \
+    return m_ptr _op_ o.m_ptr;                                  \
+}                                                               \
+template<typename U>                                            \
+inline bool operator _op_ (const wp<U>& o) const {              \
+    return m_ptr _op_ o.m_ptr;                                  \
+}
 
 // ---------------------------------------------------------------------------
 
@@ -82,7 +90,7 @@ public:
 
 private:    
     template<typename Y> friend class sp;
-  
+    template<typename Y> friend class wp;
     void set_pointer(T* ptr);
     T* m_ptr;
 };

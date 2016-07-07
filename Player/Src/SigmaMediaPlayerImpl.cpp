@@ -168,7 +168,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
 
     mBitrate = totalBitRate;
 
-    printf("mBitrate = %lld bits/sec", mBitrate);
+    printf("mBitrate = %lld bits/sec\n", mBitrate);
 
     {
         Mutex::Autolock autoLock(mStatsLock);
@@ -190,7 +190,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
         String8 mime = String8(_mime);
 
         if (!haveVideo && !strncasecmp(mime.string(), "video/", 6)) {
-           // setVideoSource(extractor->getTrack(i));
+            setVideoSource(extractor->getTrack(i));
             haveVideo = true;
 
             // Set the presentation/display size
@@ -213,7 +213,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
                 stat->mMIME = mime.string();
             }
         } else if (!haveAudio && !strncasecmp(mime.string(), "audio/", 6)) {
-          //  setAudioSource(extractor->getTrack(i));
+            setAudioSource(extractor->getTrack(i));
             haveAudio = true;
             mActiveAudioTrackIndex = i;
 
@@ -527,3 +527,13 @@ void SigmaMediaPlayerImpl::modifyFlags(unsigned value, FlagMode mode) {
         mStats.mFlags = mFlags;
     }
 }
+
+void SigmaMediaPlayerImpl::setVideoSource(sp<MediaSource> source) {
+    mVideoTrack = source;
+}
+
+void SigmaMediaPlayerImpl::setAudioSource(sp<MediaSource> source) {
+    mAudioTrack = source;
+}
+
+

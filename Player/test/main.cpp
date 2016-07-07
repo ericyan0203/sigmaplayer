@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 
 	player->setDataSource(FILE_PATH);
 
-	while(1)
+	while(0)
 	{
 #ifdef WIN32
 				Sleep(50);
@@ -29,6 +29,7 @@ int main(int argc, char* argv[])
 			 	usleep(50 * US_PER_MS);
 #endif
 	}
+	player.clear();
 	terminate_string8();
 	return 0;
 }

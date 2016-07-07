@@ -11,7 +11,7 @@
 #include <Threads.h>
 #include <String8.h>
 
-class DataSource : public VirtualLightRefBase {
+class DataSource : /*public VirtualLightRefBase*/ public virtual RefBase {
 public:
     enum Flags {
         kWantsPrefetching      = 1,
