@@ -25,6 +25,7 @@ public:
     virtual Error_Type_e        setParameter(int key, const void * request) = 0;
     virtual Error_Type_e        getParameter(int key, void * reply) = 0;
 
+	virtual Error_Type_e        sendEvent(int msg, int ext1=0, int ext2=0) = 0;
 };
 
 #endif

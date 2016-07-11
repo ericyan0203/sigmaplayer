@@ -23,7 +23,7 @@
 #include   <stddef.h> 
 
 /*self define*/
-typedef signed int ssize_t; 
+typedef signed long long ssize_t; 
 typedef  signed int status_t;
 
 #ifndef va_copy 

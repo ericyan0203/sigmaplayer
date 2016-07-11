@@ -33,10 +33,22 @@ extern "C" {
 }
 #include <ctype.h>
 
+#include "SIGM_Types.h"
+#include "SIGM_Media_API.h"
+
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+#define DEBUGFILE "d://ffmpeg.es"
+
 static bool bIsAvRegistered;
 
 #define FUN_START
 #define FUN_END
+//#define HALSYS
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -97,6 +109,8 @@ struct FfmpegSource : public MediaSource {
 		virtual Error_Type_e read(
 						MediaBuffer **buffer, const ReadOptions *options);
 
+		virtual bool threadLoop();
+
 		private:
 		enum Type {
 				AVC,
@@ -108,6 +122,7 @@ struct FfmpegSource : public MediaSource {
 				VP6,
 				VP8,
 				VP9,
+				HEVC,
 				OTHER
 		};
 
@@ -115,6 +130,12 @@ struct FfmpegSource : public MediaSource {
 		size_t mTrackIndex;
 		size_t mDemuxRefTrackIndex;
 		Type mType;
+		bool isVideo;
+		sigma_handle_t mHandle;
+		MediaBuffer *mBuffer;
+#ifdef DEBUGFILE
+		FILE * mFile;
+#endif
 		//virtual ~FfmpegSource(){};
 		FfmpegSource(const FfmpegSource &);
 		FfmpegSource &operator=(const FfmpegSource &);
@@ -125,42 +146,71 @@ FfmpegSource::FfmpegSource(
 		: mExtractor(extractor),
 		mTrackIndex(trackindex),
 		mDemuxRefTrackIndex(demuxreftrackindex),
-		mType(OTHER){
+		mType(OTHER),
+		isVideo(true),
+		mBuffer(NULL){
 				const char *mime;
 				mExtractor->mTracks.itemAt(trackindex).mMeta->findCString(kKeyMIMEType, &mime);
 				if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
 						mType = AVC;
+						isVideo = true;
 				} else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AAC)) {
 						mType = AAC;
+						isVideo = false;
 				}else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_WMA1)) {
 			            mType = WMA;
+						isVideo = false;
 				}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_WMV1)) {
 				         mType = WMV;
+						 isVideo = true;
 				     }
 				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_RV)) {
 					     mType = RV;
+						 isVideo = true;
 				}
 				else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_RA)) {
 					     mType = RA;
+						 isVideo = false;
 				}
 				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP6)) {
 					     mType = VP6;
+						 isVideo = true;
 				}
 				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8X)) {
 					     mType = VP8;
+						 isVideo = true;
 				}
 				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP9))
 				{ 
 				         mType = VP9;
+						 isVideo = true;
 				}
-					
+				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_HEVC))
+				{ 
+				         mType = HEVC;
+						 isVideo = true;
+				}
+
+#ifdef DEBUGFILE
+			mFile = fopen (DEBUGFILE, "wb+");
+#endif
+
 		}
 
 Error_Type_e FfmpegSource::start(MetaData *params) {
+		mHandle = (sigma_handle_t)-1;
+#ifdef HALSYS
+	    if(mExtractor->mTracks.itemAt(mTrackIndex).mMeta->findInt32(kKeyPlatformPrivate, (int32_t *)&mHandle))
+			return SIGM_ErrorNone;
+		else
+			return SIGM_ErrorFailed;
+#endif
+		run();
 		return SIGM_ErrorNone;
 }
 
 Error_Type_e FfmpegSource::stop() {
+	    requestExitAndWait();
 		return SIGM_ErrorNone;
 }
 
@@ -200,9 +250,73 @@ Error_Type_e FfmpegSource::read(
 		if(NULL == *out){
 				*out = new MediaBuffer(0);
 				printf("Ffmpeg Extractor returned EOS\n");
-				return SIGM_ErrorInsufficientResources;
+				return SIGM_ErrorNone;
 		}
 		return SIGM_ErrorNone;
+}
+
+bool FfmpegSource::threadLoop()
+{
+	MediaSource::ReadOptions options;
+	Error_Type_e err =  SIGM_ErrorNone;
+	int64_t timeUs;
+#ifdef HALSYS
+	Media_Buffer_t buffer;
+#endif
+	int32_t size = 0;
+	uint32_t flags;
+		
+	if(mBuffer == NULL){
+		err = read(&mBuffer, &options);
+	}
+	
+	options.clearSeekTo();
+	size = mBuffer->size();
+		
+    mBuffer->meta_data()->findInt64(kKeyTime, &timeUs);
+
+	printf("pts %llx timeUs size %d\n",timeUs,size);
+#ifdef DEBUGFILE
+	fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
+#endif
+
+#ifdef HALSYS	
+	buffer.nAllocLen = size;
+	buffer.nOffset = mBuffer->range_offset();	
+	buffer.nSize = mBuffer->range_length();
+	buffer.nTimeStamp = (timeUs == -1)? -1:timeUs/1000;
+	buffer.nFilledLen =  mBuffer->range_length();
+	buffer.pBuffer = mBuffer->data();
+	
+	if( size == 0)
+	{
+		flags |= SIGM_BUFFERFLAG_ENDOFSTREAM;
+#ifdef DEBUGFILE
+	fclose(mFile);
+#endif
+	}
+	if(isVideo) flags |= SIGM_BUFFERFLAG_VIDEO_BL | SIGM_BUFFERFLAG_BLOCKCALL;
+	else flags |= SIGM_BUFFERFLAG_AUDIOFRAME| SIGM_BUFFERFLAG_BLOCKCALL;
+
+	buffer.nFlags = flags;
+	
+	err = HalSys_Media_PushFrame(mHandle, &buffer);
+	if(err == SIGM_ErrorNone) {
+		mBuffer->release();
+    	mBuffer = NULL;
+	}
+#else
+	mBuffer->release();
+    mBuffer = NULL;
+#endif
+	//else  keep the back up the data
+#ifdef WIN32
+				Sleep(5);
+#else
+			 	usleep(5 * US_PER_MS);
+#endif
+
+	return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1451,7 +1565,6 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 		//try to get the frames from prefetched lists
 		if(trackIndex == mCurrentVideoTrack){
-				//MIG
 				//Lock the video list while retrieving data
 				Mutex::Autolock autoLock(mVListLock);
 				if(encVideoFrameList.size() <= 0){
@@ -1474,7 +1587,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 								return buffer;		 
 						}
-						printf("Video track prefetch list is empty\n");
+						//printf("Video track prefetch list is empty\n");
 				}else{
 						TrackEncFrame * out = *encVideoFrameList.begin();
 						encVideoFrameList.erase(encVideoFrameList.begin());	   
@@ -1545,7 +1658,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 						if(mCurrentVideoTrack != encFrame.stream_index && mCurrentAudioTrack != encFrame.stream_index)
 						{
-						    //ALOGW("ignore the id %x \n",encFrame.stream_index);
+						    printf("ignore the id %x \n",encFrame.stream_index);
 						    av_free_packet(&encFrame);
 							continue;
 						}
@@ -1557,7 +1670,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 				//Add the frame to track encoded frame list	
 				MediaBuffer *buffer = new MediaBuffer(encFrame.size+8192); //add 8192 bytes 
 
-				//ALOGW("encFrame pts %llx size %x flag %x stream index %d\n",encFrame.pts,encFrame.size,encFrame.flags,encFrame.stream_index);
+				printf("encFrame pts %llx dts %llx size %x flag %x stream index %d\n",encFrame.pts,encFrame.dts,encFrame.size,encFrame.flags,encFrame.stream_index);
 				//try for pts
 				if((encFrame.pts != 0x8000000000000000LL) && (encFrame.flags & AV_PKT_FLAG_KEY)){
 						int64_t pts;
@@ -1617,11 +1730,12 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 						int64_t pts;
 						int num, den;
 						if(mCurrentVideoTrack == encFrame.stream_index) {
+								//printf("num %x den %x last %lld\n",pFormatCtx->streams[encFrame.stream_index]->time_base.num,pFormatCtx->streams[encFrame.stream_index]->time_base.den, mVideoTrackFrameCountSinceLastPts);
 								pts = mVideoTrackFrameCountSinceLastPts+1;
 								num = pFormatCtx->streams[encFrame.stream_index]->time_base.num;
 								den = pFormatCtx->streams[encFrame.stream_index]->time_base.den;
-								pts = (int64_t)(((double)pts *((double)num/(double)den)) * (double)(1000000));
-
+								//seems not right in es playback
+								pts = -1;//(int64_t)(((double)pts *((double)num/(double)den)) * (double)(1000000));
 								buffer->meta_data()->setInt64(kKeyTime,mVideoTrackLatestPts+pts);
 
 								mVideoTrackFrameCountSinceLastPts++;
@@ -1630,7 +1744,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 								num = pFormatCtx->streams[encFrame.stream_index]->time_base.num;
 								den = pFormatCtx->streams[encFrame.stream_index]->time_base.den;
 								//Fix wrong PTS calculate, we just set it as 0
-								pts = 0;//(int64_t)(((double)pts *((double)num/(double)den)) * (double)(1000000));
+								pts = -1;//(int64_t)(((double)pts *((double)num/(double)den)) * (double)(1000000));
 								buffer->meta_data()->setInt64(kKeyTime,mAudioTrackLatestPts+pts);
 								mAudioTrackFrameCountSinceLastPts++;
 						}

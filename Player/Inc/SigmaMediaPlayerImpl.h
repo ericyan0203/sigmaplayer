@@ -10,6 +10,7 @@
 #include <Threads.h>
 #include "MediaSource.h"
 #include "MediaExtractor.h"
+#include "SIGM_Media_API.h"
 
 struct SigmaMediaPlayerImpl {
     SigmaMediaPlayerImpl();
@@ -38,7 +39,11 @@ struct SigmaMediaPlayerImpl {
     // This is a mask of MediaExtractor::Flags.
     uint32_t flags() const;
 
+	void setListener(const wp<ISigmaPlayer> &listener);
 
+	Error_Type_e  notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
+
+	Error_Type_e  sendEvent(int msg, int ext1=0, int ext2=0);
 
 private:
     enum {
@@ -87,12 +92,22 @@ private:
 
 	String8 mIP;
 	uint32_t mPort;
+
+	bool haveAudio;
+	Video_CodingType_e mVideoFormat;
+		
+    bool haveVideo;
+	Audio_CodingType_e mAudioFormat;
+
+	sigma_handle_t mHandle;
 	
     sp<DataSource> mFileSource;
 
     sp<MediaSource> mVideoTrack;
 	sp<MediaSource> mAudioTrack;
 
+	wp<ISigmaPlayer> mListener;
+	
     ssize_t mActiveAudioTrackIndex;
 	ssize_t mActiveVideoTrackIndex;
 

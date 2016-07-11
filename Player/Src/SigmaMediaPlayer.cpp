@@ -6,7 +6,7 @@
 
 SigmaMediaPlayer::SigmaMediaPlayer()
     : mPlayer(new SigmaMediaPlayerImpl) {
-   // mPlayer->setListener(this);
+     mPlayer->setListener(this);
 }
 
 
@@ -76,3 +76,16 @@ Error_Type_e SigmaMediaPlayer::getParameter(int key, void *reply) {
     printf("getParameter\n");
     return mPlayer->getParameter(key, reply);
 }
+
+Error_Type_e SigmaMediaPlayer::sendEvent(int msg, int ext1, int ext2) {
+	Mutex::Autolock autoLock(mNotifyLock);
+	Error_Type_e ret = SIGM_ErrorNone;
+	switch(msg)
+	{
+		case MEDIA_BUFFERING_UPDATE:
+			ret = mPlayer->sendEvent(msg,ext1,ext2);
+			break;
+	}
+	return ret;
+}
+

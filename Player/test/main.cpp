@@ -20,8 +20,9 @@ int main(int argc, char* argv[])
 	sp<SigmaMediaPlayer> player = new SigmaMediaPlayer(SERVER_IP,SERVER_PORT);
 
 	player->setDataSource(FILE_PATH);
+	player->start();
 
-	while(0)
+	while(1)
 	{
 #ifdef WIN32
 				Sleep(50);

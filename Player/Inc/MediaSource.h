@@ -11,8 +11,9 @@
 #include "MetaData.h"
 #include "StrongPointer.h"
 #include "MediaBuffer.h"
+#include "Threads.h"
 
-struct MediaSource : public virtual RefBase   {
+struct MediaSource : public virtual RefBase ,public virtual Thread {
     MediaSource();
 
     // To be called before any other methods on this object, except

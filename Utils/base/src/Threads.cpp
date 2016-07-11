@@ -55,12 +55,22 @@ int CreateRawThreadEtc(thread_func_t entryFunction,
             entryFunction, result, errno, threadPriority);
         return 0;
     }
+	else
+	{
+		 printf("CreateRawThreadEtc success (entry=%p, res=%d, errno=%d)\n"
+             "( threadPriority=%d)",
+            entryFunction, result, errno, threadPriority);
+	}
 
     // Note that *threadID is directly available to the parent only, as it is
     // assigned after the child starts.  Use memory barrier / lock if the child
     // or other threads also need access.
     if (threadId != NULL) {
+#ifdef WIN32
         *threadId = (void *)thread.p; // XXX: this is not portable
+#else
+	 	*threadId = (void *)thread; 
+#endif
     }
     return 1;
 }
@@ -89,7 +99,7 @@ int Thread::readyToRun()
     return UTILS_NO_ERROR;
 }
 
-int Thread::run(const char* name, int priority, int stack)
+int Thread::run(const char* name,int32_t priority, size_t stack)
 {
     Mutex::Autolock _l(mLock);
 	bool res;
@@ -137,6 +147,7 @@ int Thread::_threadLoop(void* user)
     Thread* const self = static_cast<Thread*>(user);
 
     sp<Thread> strong(self->mHoldSelf);
+    wp<Thread> weak(strong);
     self->mHoldSelf.clear();
 
     bool first = true;
@@ -180,13 +191,12 @@ int Thread::_threadLoop(void* user)
             break;
         }
         }
-#if 0
+
         // Release our strong reference, to let a chance to the thread
         // to die a peaceful death.
         strong.clear();
         // And immediately, re-acquire a strong reference for the next loop
         strong = weak.promote();
-#endif
 	} while(strong != 0);
 
     return 0;
@@ -202,8 +212,12 @@ int Thread::requestExitAndWait()
 {
     Mutex::Autolock _l(mLock);
 
-#if 1
-	if (mThread == pthread_self().p) {
+#ifdef WIN32
+	if (mThread == pthread_self().p)
+#else
+	if (mThread == pthread_self())
+#endif
+	{
         printf(
         "Thread (this=%p): don't call waitForExit() from this "
         "Thread object's thread. It's a guaranteed deadlock!",
@@ -211,7 +225,6 @@ int Thread::requestExitAndWait()
 
         return UTILS_WOULD_BLOCK;
     }
-#endif
     mExitPending = true;
 
     while (mRunning == true) {
@@ -227,7 +240,12 @@ int Thread::requestExitAndWait()
 int Thread::join()
 {
     Mutex::Autolock _l(mLock);
-    if (mThread == pthread_self().p) {
+#ifdef WIN32
+	if (mThread == pthread_self().p) 
+#else
+	if (mThread == pthread_self()) 
+#endif
+	{
         printf(
         "Thread (this=%p): don't call join() from this "
         "Thread object's thread. It's a guaranteed deadlock!",

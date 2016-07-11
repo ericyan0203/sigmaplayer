@@ -21,13 +21,15 @@
 #include "DataSource.h"
 #include "FileSource.h"
 #include "MediaBuffer.h"
-//#include "MediaDefs.h"
+#include "MediaDefs.h"
 #include "MediaExtractor.h"
 #include "MediaSource.h"
 #include "MetaData.h"
 
 #define DEFAULT_IP  	"127.0.0.1"
 #define DEFAULT_PORT 	0
+
+//#define HALSYS  1
 
 static int64_t kLowWaterMarkUs = 2000000ll;  // 2secs
 static int64_t kHighWaterMarkUs = 5000000ll;  // 5secs
@@ -38,6 +40,31 @@ static const size_t kHighWaterMarkBytes = 200000;
 // is destroyed to allow the audio DSP to power down.
 static int64_t kOffloadPauseMaxUs = 60000000ll;
 
+static int32_t convertToSigmaFormat(const char * mime) {
+	int32_t ret = 0;
+	if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
+		ret = (int32_t)SIGM_VIDEO_CodingAVC;
+	} else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AAC)) {
+		ret = (int32_t)SIGM_AUDIO_CodingAAC;
+	}else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_WMA1)) {
+		ret = (int32_t)SIGM_AUDIO_CodingWMA;
+	}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_WMV1)) {
+		ret = (int32_t)SIGM_VIDEO_CodingVC1;
+	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_RV)) {
+		ret = (int32_t)SIGM_VIDEO_CodingRV;
+	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_RA)) {
+		ret = (int32_t)SIGM_VIDEO_CodingRV;
+	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP6)) {
+		ret = (int32_t)SIGM_VIDEO_CodingVP6;
+	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8X)) {
+		ret = (int32_t)SIGM_VIDEO_CodingVP8;
+	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP9)){ 
+		ret = (int32_t)SIGM_VIDEO_CodingVP9;
+	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_HEVC)){ 
+		ret = (int32_t)SIGM_VIDEO_CodingHEVC;
+	}
+	return ret;
+}
 ////////////////////////////////////////////////////////////////////////////////
 SigmaMediaPlayerImpl::SigmaMediaPlayerImpl()
     : mUIDValid(false),
@@ -46,11 +73,17 @@ SigmaMediaPlayerImpl::SigmaMediaPlayerImpl()
       mFlags(0),
       mExtractorFlags(0),
       mIP(DEFAULT_IP),
-      mPort(DEFAULT_PORT){
+      mPort(DEFAULT_PORT),
+      haveAudio(0),
+      haveVideo(0),
+      mVideoFormat(SIGM_VIDEO_CodingUnused),
+      mAudioFormat(SIGM_AUDIO_CodingUnused),
+      mHandle((void *)-1){
 
 	//Init Platform
+#ifdef HALSYS
 	mClient.connect(mIP,mPort);
-	
+#endif	
     DataSource::RegisterDefaultSniffers();
 
     reset();
@@ -63,11 +96,17 @@ SigmaMediaPlayerImpl::SigmaMediaPlayerImpl(const char * ip, int32_t port)
       mFlags(0),
       mExtractorFlags(0),
       mIP(ip),
-      mPort(port){
-
-	//Init Platform
-	//mClient.connect(mIP,mPort);
+      mPort(port),
+      haveAudio(0),
+      haveVideo(0),
+      mVideoFormat(SIGM_VIDEO_CodingUnused),
+      mAudioFormat(SIGM_AUDIO_CodingUnused){
 	
+	mHandle = (sigma_handle_t)-1;
+	//Init Platform
+#ifdef HALSYS
+	mClient.connect(mIP,mPort);
+#endif	
     DataSource::RegisterDefaultSniffers();
 
     reset();
@@ -77,7 +116,10 @@ SigmaMediaPlayerImpl::~SigmaMediaPlayerImpl() {
     reset();
 
 	//disconnect halsys platform
-    //mClient.disconnect();
+#ifdef HALSYS
+    mClient.disconnect();
+#endif
+
 }
 
 void SigmaMediaPlayerImpl::setUID(uid_t uid) {
@@ -141,6 +183,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
     // we have to fail.
 
     int64_t totalBitRate = 0;
+	Error_Type_e ret = SIGM_ErrorNone;
 
     mExtractor = extractor;
     for (size_t i = 0; i < extractor->countTracks(); ++i) {
@@ -177,9 +220,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
         mStats.mAudioTrackIndex = -1;
         mStats.mVideoTrackIndex = -1;
     }
-
-    bool haveAudio = false;
-    bool haveVideo = false;
+	
     for (size_t i = 0; i < extractor->countTracks(); ++i) {
         sp<MetaData> meta = extractor->getTrackMetaData(i);
 
@@ -212,6 +253,8 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
                     &mStats.mTracks.editItemAt(mStats.mVideoTrackIndex);
                 stat->mMIME = mime.string();
             }
+
+			mVideoFormat = (Video_CodingType_e)convertToSigmaFormat(mime.string());
         } else if (!haveAudio && !strncasecmp(mime.string(), "audio/", 6)) {
             setAudioSource(extractor->getTrack(i));
             haveAudio = true;
@@ -225,16 +268,21 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
                     &mStats.mTracks.editItemAt(mStats.mAudioTrackIndex);
                 stat->mMIME = mime.string();
             }
+
+			mAudioFormat = (Audio_CodingType_e)convertToSigmaFormat(mime.string());
    	 	}
-    	}
+    }
    
     if (!haveAudio && !haveVideo) {
          return SIGM_ErrorFailed;
     }
 
     mExtractorFlags = extractor->flags();
-
-    return SIGM_ErrorNone;
+	
+#ifdef HALSYS
+	ret = HalSys_Media_Initialize();
+#endif
+    return ret;
 }
 
 void SigmaMediaPlayerImpl::reset() {
@@ -320,7 +368,8 @@ Error_Type_e SigmaMediaPlayerImpl::play() {
 }
 
 Error_Type_e SigmaMediaPlayerImpl::play_l() {
-
+	Error_Type_e ret = SIGM_ErrorNone;
+	
     if (mFlags & PLAYING) {
         return SIGM_ErrorNone;
     }
@@ -343,8 +392,20 @@ Error_Type_e SigmaMediaPlayerImpl::play_l() {
         seekTo_l(0);
     }
 
+#ifdef HALSYS
+	if(mHandle != (sigma_handle_t)-1) 
+		ret = HalSys_Media_Start(mHandle);	
+#endif
 
-    return SIGM_ErrorNone;
+
+	if(ret != SIGM_ErrorNone){
+		 modifyFlags((PLAYING | FIRST_FRAME), CLEAR);
+	}
+
+	if(haveVideo) mVideoTrack->start(NULL);
+	if(haveAudio) mAudioTrack->start(NULL);
+	
+	return ret;
 }
 
 Error_Type_e SigmaMediaPlayerImpl::stop() {
@@ -352,7 +413,24 @@ Error_Type_e SigmaMediaPlayerImpl::stop() {
 }
 
 Error_Type_e SigmaMediaPlayerImpl::stop_l(){
-	return SIGM_ErrorNone;
+	Error_Type_e ret = SIGM_ErrorNone;
+	
+#if HALSYS
+	if(mHandle != (sigma_handle_t)-1 && (mFlags|PLAYING)){
+		ret = HalSys_Media_Stop(mHandle);	
+	}
+#endif
+	modifyFlags(PLAYING, CLEAR);
+
+#ifdef HALSYS
+	if(ret == SIGM_ErrorNone && (mFlags|PREPARED)) {
+		ret = HalSys_Media_Close(mHandle);
+	}
+#endif
+
+	modifyFlags(PREPARED, CLEAR); //should move to antohre api?
+ 	
+	return ret;
 }
 
 Error_Type_e SigmaMediaPlayerImpl::pause() {
@@ -364,17 +442,23 @@ Error_Type_e SigmaMediaPlayerImpl::pause() {
 }
 
 Error_Type_e SigmaMediaPlayerImpl::pause_l(bool at_eos) {
-    if (!(mFlags & PLAYING)) {
-        
-        return SIGM_ErrorNone;
+	Error_Type_e ret = SIGM_ErrorNone;
+	
+    if (!(mFlags & PLAYING)) {    
+        return ret;
     }
 
     modifyFlags(PLAYING, CLEAR);
 
     modifyFlags(PAUSED, SET);
 
+#ifdef HALSYS
+	if(mHandle == (sigma_handle_t)-1) {
+		ret = HalSys_Media_Pause(mHandle);
+	}
+#endif
 
-    return SIGM_ErrorNone;
+    return ret;
 }
 
 bool SigmaMediaPlayerImpl::isPlaying() const {
@@ -408,6 +492,9 @@ Error_Type_e SigmaMediaPlayerImpl::prepare() {
 }
 
 Error_Type_e SigmaMediaPlayerImpl::prepare_l() {
+	Error_Type_e ret = SIGM_ErrorNone;
+	Media_Config_t tMediaConfig;
+	
     if (mFlags & PREPARED) {
         return SIGM_ErrorNone;
     }
@@ -416,7 +503,36 @@ Error_Type_e SigmaMediaPlayerImpl::prepare_l() {
         return SIGM_ErrorIncorrectStateTransition;
     }
 
-    return SIGM_ErrorNone;
+	modifyFlags(PREPARING, SET);
+
+#ifdef HALSYS
+	 
+    tMediaConfig.bLowLatency = trid_false;
+    tMediaConfig.eClockMode = CLOCK_MODE_TIMER;
+
+    tMediaConfig.tAudioConfig.eAudioFormat = mAudioFormat;
+    tMediaConfig.tAudioConfig.eSoundSink = (mAudioFormat == SIGM_AUDIO_CodingUnused)?0:(SIGM_SOUND_SINK_HEADPHONE | SIGM_SOUND_SINK_SPDIF_PCM | SIGM_SOUND_SINK_SPEAKER);
+
+    tMediaConfig.tVideoConfig.eVideoDisplayMode = SIGM_SEAMLESS_NONE;
+    tMediaConfig.tVideoConfig.eVideoFormat = mVideoFormat ;
+    tMediaConfig.tVideoConfig.eVideoPlayMode = SIGM_PLAYMODE_NORMAL;
+    tMediaConfig.tVideoConfig.eVideoStreamMode = SIGM_STREAMMODE_NORMAL;
+    tMediaConfig.tVideoConfig.eVideoSink = (Video_Sink_e)((mVideoFormat== SIGM_VIDEO_CodingUnused)?0:SIGM_VIDEO_SINK_MP);
+	tMediaConfig.tVideoConfig.eMuxType = SIGM_MUX_ES;
+    ret = HalSys_Media_Open(&tMediaConfig, &mHandle);
+
+	for (size_t i = 0; i < mExtractor->countTracks(); ++i) {
+        sp<MetaData> meta = mExtractor->getTrackMetaData(i);
+		meta->setInt32(kKeyPlatformPrivate, (int32_t)mHandle);
+	}
+#endif
+
+   if(ret == SIGM_ErrorNone) {
+		modifyFlags((PREPARING|PREPARE_CANCELLED|PREPARING_CONNECTED), CLEAR);
+		modifyFlags(PREPARED, SET);
+   	}
+
+	return SIGM_ErrorNone;
 }
 
 
@@ -536,4 +652,23 @@ void SigmaMediaPlayerImpl::setAudioSource(sp<MediaSource> source) {
     mAudioTrack = source;
 }
 
+void SigmaMediaPlayerImpl::setListener(const wp<ISigmaPlayer> &listener) {
+    Mutex::Autolock autoLock(mLock);
+    mListener = listener;
+}
+
+Error_Type_e SigmaMediaPlayerImpl::notifyListener_l(int msg, int ext1, int ext2) {
+    if (mListener != NULL) {
+        sp<ISigmaPlayer> listener = mListener.promote();
+
+        if (listener != NULL) {
+            return listener->sendEvent(msg, ext1, ext2);
+        }
+    }
+	return SIGM_ErrorNone;
+}
+
+Error_Type_e SigmaMediaPlayerImpl::sendEvent(int msg, int ext1, int ext2) {
+	return SIGM_ErrorNone;
+}
 

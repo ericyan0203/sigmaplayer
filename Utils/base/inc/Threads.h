@@ -65,8 +65,7 @@ public:
 
     // Start the thread in threadLoop() which needs to be implemented.
     virtual int    run(    const char* name = 0,
-                                int priority = 0,
-                                int stack = 0);
+                            int32_t priority = 0, size_t stack = 0);
     
     // Ask this object's thread to exit. This function is asynchronous, when the
     // function returns the thread might still be running. Of course, this
