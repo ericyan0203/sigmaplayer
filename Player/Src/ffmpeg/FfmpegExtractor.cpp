@@ -42,13 +42,13 @@ extern "C" {
 #include <unistd.h>
 #endif
 
-#define DEBUGFILE "d://ffmpeg.es"
+//#define DEBUGFILE "d://ffmpeg.es"
 
 static bool bIsAvRegistered;
 
 #define FUN_START
 #define FUN_END
-//#define HALSYS
+#define HALSYS
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -133,6 +133,7 @@ struct FfmpegSource : public MediaSource {
 		bool isVideo;
 		sigma_handle_t mHandle;
 		MediaBuffer *mBuffer;
+		bool bEOS;
 #ifdef DEBUGFILE
 		FILE * mFile;
 #endif
@@ -148,7 +149,8 @@ FfmpegSource::FfmpegSource(
 		mDemuxRefTrackIndex(demuxreftrackindex),
 		mType(OTHER),
 		isVideo(true),
-		mBuffer(NULL){
+		mBuffer(NULL),
+		bEOS(false){
 				const char *mime;
 				mExtractor->mTracks.itemAt(trackindex).mMeta->findCString(kKeyMIMEType, &mime);
 				if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
@@ -200,13 +202,16 @@ FfmpegSource::FfmpegSource(
 Error_Type_e FfmpegSource::start(MetaData *params) {
 		mHandle = (sigma_handle_t)-1;
 #ifdef HALSYS
-	    if(mExtractor->mTracks.itemAt(mTrackIndex).mMeta->findInt32(kKeyPlatformPrivate, (int32_t *)&mHandle))
+		if(mExtractor->mTracks.itemAt(mTrackIndex).mMeta->findInt32(kKeyPlatformPrivate, (int32_t *)&mHandle)){
+			run();
 			return SIGM_ErrorNone;
+		}
 		else
 			return SIGM_ErrorFailed;
-#endif
+#else
 		run();
 		return SIGM_ErrorNone;
+#endif
 }
 
 Error_Type_e FfmpegSource::stop() {
@@ -261,16 +266,19 @@ bool FfmpegSource::threadLoop()
 	Error_Type_e err =  SIGM_ErrorNone;
 	int64_t timeUs;
 #ifdef HALSYS
-	Media_Buffer_t buffer;
+	Media_Buffer_t buffer = {0};
 #endif
 	int32_t size = 0;
-	uint32_t flags;
-		
-	if(mBuffer == NULL){
+	uint32_t flags = 0;
+
+	if( mBuffer == NULL && bEOS) {
+		return false;
+	} else if(mBuffer == NULL){
 		err = read(&mBuffer, &options);
 	}
 	
 	options.clearSeekTo();
+	
 	size = mBuffer->size();
 		
     mBuffer->meta_data()->findInt64(kKeyTime, &timeUs);
@@ -286,11 +294,12 @@ bool FfmpegSource::threadLoop()
 	buffer.nSize = mBuffer->range_length();
 	buffer.nTimeStamp = (timeUs == -1)? -1:timeUs/1000;
 	buffer.nFilledLen =  mBuffer->range_length();
-	buffer.pBuffer = mBuffer->data();
+	buffer.pBuffer = (trid_uint8 *)mBuffer->data();
 	
 	if( size == 0)
 	{
 		flags |= SIGM_BUFFERFLAG_ENDOFSTREAM;
+		bEOS = true;
 #ifdef DEBUGFILE
 	fclose(mFile);
 #endif

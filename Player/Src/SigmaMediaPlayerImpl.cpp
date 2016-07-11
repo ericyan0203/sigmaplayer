@@ -29,7 +29,7 @@
 #define DEFAULT_IP  	"127.0.0.1"
 #define DEFAULT_PORT 	0
 
-//#define HALSYS  1
+#define HALSYS  1
 
 static int64_t kLowWaterMarkUs = 2000000ll;  // 2secs
 static int64_t kHighWaterMarkUs = 5000000ll;  // 5secs
@@ -409,6 +409,7 @@ Error_Type_e SigmaMediaPlayerImpl::play_l() {
 }
 
 Error_Type_e SigmaMediaPlayerImpl::stop() {
+	printf("stop\n");
 	return stop_l();
 }
 
@@ -416,7 +417,7 @@ Error_Type_e SigmaMediaPlayerImpl::stop_l(){
 	Error_Type_e ret = SIGM_ErrorNone;
 	
 #if HALSYS
-	if(mHandle != (sigma_handle_t)-1 && (mFlags|PLAYING)){
+	if(mHandle != (sigma_handle_t)(-1) && (mFlags|PLAYING)){
 		ret = HalSys_Media_Stop(mHandle);	
 	}
 #endif

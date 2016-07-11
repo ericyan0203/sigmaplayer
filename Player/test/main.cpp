@@ -9,8 +9,8 @@
 #endif
 
 #define FILE_PATH 	"d://halsys.avc"
-#define SERVER_IP 	"127.0.0.1"
-#define SERVER_PORT 1111
+#define SERVER_IP 	"10.86.62.6"
+#define SERVER_PORT 52116
 
 int main(int argc, char* argv[])
 {
@@ -22,14 +22,15 @@ int main(int argc, char* argv[])
 	player->setDataSource(FILE_PATH);
 	player->start();
 
-	while(1)
+	if(1)
 	{
 #ifdef WIN32
-				Sleep(50);
+				Sleep(30000);
 #else
 			 	usleep(50 * US_PER_MS);
 #endif
 	}
+	player->stop();
 	player.clear();
 	terminate_string8();
 	return 0;
