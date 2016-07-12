@@ -8,7 +8,7 @@
 #include <unistd.h>
 #endif
 
-#define FILE_PATH 	"d://halsys.avc"
+#define FILE_PATH 	"d://honolulu.mp3" //"d://halsys.avc"
 #define SERVER_IP 	"10.86.62.6"
 #define SERVER_PORT 52116
 
@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 	if(1)
 	{
 #ifdef WIN32
-				Sleep(30000);
+				Sleep(100000);
 #else
 			 	usleep(50 * US_PER_MS);
 #endif

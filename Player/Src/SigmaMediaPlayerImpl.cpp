@@ -62,6 +62,12 @@ static int32_t convertToSigmaFormat(const char * mime) {
 		ret = (int32_t)SIGM_VIDEO_CodingVP9;
 	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_HEVC)){ 
 		ret = (int32_t)SIGM_VIDEO_CodingHEVC;
+	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_I)){ 
+		ret = (int32_t)SIGM_AUDIO_CodingMPEG;
+	}else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_II)){ 
+		ret = (int32_t)SIGM_AUDIO_CodingMPEG;
+	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG)){ 
+		ret = (int32_t)SIGM_AUDIO_CodingMP3;
 	}
 	return ret;
 }

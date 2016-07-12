@@ -123,6 +123,9 @@ struct FfmpegSource : public MediaSource {
 				VP8,
 				VP9,
 				HEVC,
+				MP1,
+				MP2,
+				MP3,
 				OTHER
 		};
 
@@ -156,7 +159,7 @@ FfmpegSource::FfmpegSource(
 				if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
 						mType = AVC;
 						isVideo = true;
-				} else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AAC)) {
+				}else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AAC)) {
 						mType = AAC;
 						isVideo = false;
 				}else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_WMA1)) {
@@ -165,32 +168,34 @@ FfmpegSource::FfmpegSource(
 				}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_WMV1)) {
 				         mType = WMV;
 						 isVideo = true;
-				     }
-				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_RV)) {
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_RV)) {
 					     mType = RV;
 						 isVideo = true;
-				}
-				else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_RA)) {
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_RA)) {
 					     mType = RA;
 						 isVideo = false;
-				}
-				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP6)) {
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP6)) {
 					     mType = VP6;
 						 isVideo = true;
-				}
-				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8X)) {
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8X)) {
 					     mType = VP8;
 						 isVideo = true;
 				}
-				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP9))
-				{ 
+				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP9)) { 
 				         mType = VP9;
 						 isVideo = true;
-				}
-				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_HEVC))
-				{ 
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_HEVC)) { 
 				         mType = HEVC;
 						 isVideo = true;
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_I)) { 
+				         mType = MP1;
+						 isVideo = false;
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_II)) { 
+				         mType = MP2;
+						 isVideo = false;
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG)) { 
+				         mType = MP3;
+						 isVideo = false;
 				}
 
 #ifdef DEBUGFILE
@@ -1217,11 +1222,31 @@ int FfmpegExtractor::addTracks() {
 						switch(pFormatCtx->streams[uCount]->codec->codec_id)
 						{         
 								case  	AV_CODEC_ID_MP1:
+										meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_I);
+										bAudioCodecSupported = true;
+										printf("FFMPEG AUDIO MP1\n");
+										printf("codecPrivateSize audio= %d\n",pFormatCtx->streams[uCount]->codec->extradata_size);
+										mAudioCodecSpecificDataSize = pFormatCtx->streams[uCount]->codec->extradata_size;				   
+										if(mAudioCodecSpecificDataSize > 0){
+												memcpy(&mAudioCodecSpecificData[0],pFormatCtx->streams[uCount]->codec->extradata,pFormatCtx->streams[uCount]->codec->extradata_size);
+												mIsAudioCodecSpecificDataValid = true;
+										}
+										break;
 								case    AV_CODEC_ID_MP2:
+										meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_MPEG_LAYER_II);
+										bAudioCodecSupported = true;
+										printf("FFMPEG AUDIO MP2\n");
+										printf("codecPrivateSize audio= %d\n",pFormatCtx->streams[uCount]->codec->extradata_size);
+										mAudioCodecSpecificDataSize = pFormatCtx->streams[uCount]->codec->extradata_size;				   
+										if(mAudioCodecSpecificDataSize > 0){
+												memcpy(&mAudioCodecSpecificData[0],pFormatCtx->streams[uCount]->codec->extradata,pFormatCtx->streams[uCount]->codec->extradata_size);
+												mIsAudioCodecSpecificDataValid = true;
+										}
+										break;
 								case    AV_CODEC_ID_MP3:    
 										meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_MPEG);
 										bAudioCodecSupported = true;
-										printf("FFMPEG AUDIO MP2/MP3\n");
+										printf("FFMPEG AUDIO MP3\n");
 										printf("codecPrivateSize audio= %d\n",pFormatCtx->streams[uCount]->codec->extradata_size);
 										mAudioCodecSpecificDataSize = pFormatCtx->streams[uCount]->codec->extradata_size;				   
 										if(mAudioCodecSpecificDataSize > 0){
