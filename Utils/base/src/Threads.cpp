@@ -50,15 +50,13 @@ int CreateRawThreadEtc(thread_func_t entryFunction,
                     (pthread_entry)entryFunction, userData);
     pthread_attr_destroy(&attr);
     if (result != 0) {
-        printf("CreateRawThreadEtc failed (entry=%p, res=%d, errno=%d)\n"
-             "( threadPriority=%d)",
+        printf("CreateRawThreadEtc failed (entry=%p, res=%d, errno=%d)( threadPriority=%d)\n",
             entryFunction, result, errno, threadPriority);
         return 0;
     }
 	else
 	{
-		 printf("CreateRawThreadEtc success (entry=%p, res=%d, errno=%d)\n"
-             "( threadPriority=%d)",
+		 printf("CreateRawThreadEtc success (entry=%p, res=%d, errno=%d)( threadPriority=%d)\n",
             entryFunction, result, errno, threadPriority);
 	}
 

@@ -48,7 +48,7 @@ static bool bIsAvRegistered;
 
 #define FUN_START
 #define FUN_END
-//#define HALSYS
+#define HALSYS
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -295,7 +295,7 @@ bool FfmpegSource::threadLoop()
 		
     mBuffer->meta_data()->findInt64(kKeyTime, &timeUs);
 
-	if(isVideo) printf("isVideo[%d] pts %llx  size %d\n",isVideo,timeUs,mBuffer->range_length());
+	printf("%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
 #ifdef DEBUGFILE
 	if(isVideo) {
 		fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
@@ -316,8 +316,8 @@ bool FfmpegSource::threadLoop()
 		flags |= SIGM_BUFFERFLAG_ENDOFSTREAM;
 		bEOS = true;
 #ifdef DEBUGFILE
-	fclose(mFile);
-#endif
+	    if(isVideo) fclose(mFile);
+#endif   
 	}
 	if(isVideo) flags |= SIGM_BUFFERFLAG_VIDEO_BL | SIGM_BUFFERFLAG_BLOCKCALL;
 	else flags |= SIGM_BUFFERFLAG_AUDIOFRAME| SIGM_BUFFERFLAG_BLOCKCALL;
@@ -331,15 +331,18 @@ bool FfmpegSource::threadLoop()
 		mBuffer->release();
     	mBuffer = NULL;
 	}
+	else{
+		printf("ret %x\n",err);
+	}
 #else
 	mBuffer->release();
     mBuffer = NULL;
 #endif
 	//else  keep the back up the data
 #ifdef WIN32
-				Sleep(5);
+				Sleep(1);
 #else
-			 	usleep(5 * US_PER_MS);
+			 	usleep(1 * US_PER_MS);
 #endif
 
 	return true;
@@ -1538,6 +1541,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 		bool bFrameAvailable = false,bIsseekmode = false;
 		int Ret = 0;
 		int entrypointSize   = 0;
+		Mutex::Autolock autoLock(mLock);
 
 		const int VIDEO_MAXQ_SIZE=10*1024*1024; //Do not allow caching of more than this size
 		const int AUDIO_MAXQ_SIZE=10*1024*1024;
@@ -1577,7 +1581,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 				int seek_ret = 0;
 				{
-						Mutex::Autolock autoLock(mLock);
+						//Mutex::Autolock autoLock(mLock);
 						seek_ret = av_seek_frame(pFormatCtx, trackIndex, seek_target, AVSEEK_FLAG_ANY);
 				}
 				if(seek_ret < 0) {
@@ -1646,6 +1650,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 									return buffer;
 								}else {
+									//Mutex::Autolock autoLock(mLock);
 									pFilter = av_bitstream_filter_init("h264_mp4toannexb");
 									printf("Init h264_mp4toannexb filter\n");
 								}
@@ -1662,11 +1667,8 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 								delete out;
 								mVListSize-=frame->size();
 						}
-						//ALOGI("%s %d\n",__FUNCTION__,__LINE__);
 				}
 		}else if(trackIndex == mCurrentAudioTrack){
-
-				//MIG
 				//Lock the audio list while retrieving data
 				Mutex::Autolock autoLock(mAListLock);
 
@@ -1691,12 +1693,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 								bFrameAvailable = true;
 								delete out;
 								mAListSize-=frame->size();
-								//ALOGE("alist size at pop (%d)\n", mAListSize);
-
-
 						}
-
-						//ALOGI("%s %d\n",__FUNCTION__,__LINE__);
 				}
 		}else {
 				printf("why are we reading something which is not A/V?\n");
@@ -1705,9 +1702,8 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 		}
 		while(!bFrameAvailable && !mEof){	
 				/* Read frame */
-				//ALOGI("before av_read_frame\n");
 				{
-						Mutex::Autolock autoLock(mLock);
+						//Mutex::Autolock autoLock(mLock);
 						Ret = av_read_frame(pFormatCtx, &encFrame);
 				//		ALOGI("after av_read_frame\n");
 						if(Ret < 0){
@@ -1724,13 +1720,12 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 						}
 						
 				}
-				//ALOGW("video track extra data size:%d codecid %x video track %x stream index %x\n",pFormatCtx->streams[mCurrentVideoTrack]->codec->extradata_size,pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id,mCurrentVideoTrack,encFrame.stream_index);
-				//ALOGW("audio track extra data size:%d\n",pFormatCtx->streams[mCurrentAudioTrack]->codec->extradata_size);
-
+	
 				//Add the frame to track encoded frame list	
 				MediaBuffer *buffer = new MediaBuffer(encFrame.size+8192); //add 8192 bytes 
 
-				if(mCurrentVideoTrack == encFrame.stream_index) printf("encFrame[%d] pts %llx size %d\n",encFrame.stream_index,encFrame.pts,encFrame.size);
+				if(mCurrentVideoTrack == encFrame.stream_index) printf("videotrack pts %lld size %d\n",encFrame.pts,encFrame.size);
+				else if(mCurrentAudioTrack == encFrame.stream_index) printf("audiotrack %lld size %d\n",encFrame.pts,encFrame.size);
 				//try for pts
 				if((encFrame.pts != 0x8000000000000000LL) && (encFrame.flags & AV_PKT_FLAG_KEY)){
 						int64_t pts;
@@ -1819,6 +1814,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 						if(AV_CODEC_ID_H264 == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id ){
 							if(pFilter != NULL){
 								AVPacket fpkt = encFrame;
+							//	Mutex::Autolock autoLock(mLock);
                 				int a = av_bitstream_filter_filter(pFilter,pFormatCtx->streams[mCurrentVideoTrack]->codec,
 											NULL, &fpkt.data, &fpkt.size,encFrame.data, encFrame.size, encFrame.flags & AV_PKT_FLAG_KEY);
                 				encFrame.data = fpkt.data;
@@ -2196,11 +2192,9 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 				}
 
 				//Free the frame
-				{    
-						Mutex::Autolock autoLock(mLock);
-						//ALOGW("av_free_packet before ..\n");
-						av_free_packet(&encFrame);
-						//ALOGW("av_free_packet fter ..\n");
+				{
+				//	Mutex::Autolock autoLock(mLock);
+					av_free_packet(&encFrame);
 				}
 
 		}//while(bFrameAvailable)

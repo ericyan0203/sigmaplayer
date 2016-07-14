@@ -29,7 +29,7 @@
 #define DEFAULT_IP  	"127.0.0.1"
 #define DEFAULT_PORT 	0
 
-//#define HALSYS  1
+#define HALSYS  1
 
 static int64_t kLowWaterMarkUs = 2000000ll;  // 2secs
 static int64_t kHighWaterMarkUs = 5000000ll;  // 5secs
@@ -413,7 +413,7 @@ Error_Type_e SigmaMediaPlayerImpl::play_l() {
 	}
 
 	if(haveVideo) mVideoTrack->start(NULL);
-	//if(haveAudio) mAudioTrack->start(NULL);
+	if(haveAudio) mAudioTrack->start(NULL);
 	
 	return ret;
 }

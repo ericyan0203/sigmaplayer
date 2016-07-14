@@ -8,7 +8,7 @@
 #include <unistd.h>
 #endif
 
-#define FILE_PATH 	"d://BBC.mp4"//"d://[H.264 HP][AAC].mp4" //"d://halsys.avc" //[H.264 BP][AC3]-1.mkv
+#define FILE_PATH 	"d://[H.264 BP][AC3]-1.mkv"//"d://[H.264 BP][AC3]-1.mkv"//"d://BBC.mp4"//"d://[H.264 HP][AAC].mp4" //"d://halsys.avc" //[H.264 BP][AC3]-1.mkv
 #define SERVER_IP 	"10.86.62.6"
 #define SERVER_PORT 52116
 

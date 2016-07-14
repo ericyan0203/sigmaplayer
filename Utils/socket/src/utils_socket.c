@@ -168,9 +168,11 @@ int socket_send(packet * pack)
     hMutex = Lock("CMDCLT_SEND");
    
 	failed_exit = 0;
-
-	printf("send hrd len %d\n",pack->hdr_len);
 	
+#ifdef SOCK_DEBUG
+	printf("send hrd len %d\n",pack->hdr_len);
+#endif
+
 	nRet = send(_socket, (const char *)pack->hdr, pack->hdr_len, 0);
 
 	if(nRet < 0)
@@ -180,8 +182,9 @@ int socket_send(packet * pack)
 		goto ERROR_OUT;
 	}
 
+#ifdef SOCK_DEBUG
 	printf("send data len %d\n",pack->data_len);
-	
+#endif	
 	nRet = send(_socket, (const char *)pack->data, pack->data_len, 0);
 	if(nRet < 0)
 	{
@@ -194,12 +197,15 @@ int socket_send(packet * pack)
     p = (unsigned char*)pack->ret;
     count = result_length;
 
+#ifdef SOCK_DEBUG
 	printf("recv ret expected len %d\n",pack->ret_len);
+#endif
     while (count > 0)
     {
         length = recv(_socket,(char *)p, count, 0);
-
+#ifdef SOCK_DEBUG
 		printf("recv ret length %x\n",length);
+#endif
 		
         if (length > 0)
         {
