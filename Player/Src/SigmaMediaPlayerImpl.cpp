@@ -29,7 +29,7 @@
 #define DEFAULT_IP  	"127.0.0.1"
 #define DEFAULT_PORT 	0
 
-#define HALSYS  1
+//#define HALSYS  1
 
 static int64_t kLowWaterMarkUs = 2000000ll;  // 2secs
 static int64_t kHighWaterMarkUs = 5000000ll;  // 5secs
@@ -42,10 +42,14 @@ static int64_t kOffloadPauseMaxUs = 60000000ll;
 
 static int32_t convertToSigmaFormat(const char * mime) {
 	int32_t ret = 0;
-	if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
+	if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)){
+		ret = (int32_t)SIGM_VIDEO_CodingMPEG4;
+	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
 		ret = (int32_t)SIGM_VIDEO_CodingAVC;
 	} else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AAC)) {
 		ret = (int32_t)SIGM_AUDIO_CodingAAC;
+	} else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AC3)) {
+		ret = (int32_t)SIGM_AUDIO_CodingAC3;
 	}else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_WMA1)) {
 		ret = (int32_t)SIGM_AUDIO_CodingWMA;
 	}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_WMV1)) {
@@ -409,7 +413,7 @@ Error_Type_e SigmaMediaPlayerImpl::play_l() {
 	}
 
 	if(haveVideo) mVideoTrack->start(NULL);
-	if(haveAudio) mAudioTrack->start(NULL);
+	//if(haveAudio) mAudioTrack->start(NULL);
 	
 	return ret;
 }

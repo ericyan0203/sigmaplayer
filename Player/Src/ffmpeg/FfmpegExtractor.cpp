@@ -42,13 +42,13 @@ extern "C" {
 #include <unistd.h>
 #endif
 
-//#define DEBUGFILE "d://ffmpeg.es"
+#define DEBUGFILE "d://ffmpeg.es"
 
 static bool bIsAvRegistered;
 
 #define FUN_START
 #define FUN_END
-#define HALSYS
+//#define HALSYS
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -126,6 +126,8 @@ struct FfmpegSource : public MediaSource {
 				MP1,
 				MP2,
 				MP3,
+				AC3,
+				MPEG4,
 				OTHER
 		};
 
@@ -156,7 +158,10 @@ FfmpegSource::FfmpegSource(
 		bEOS(false){
 				const char *mime;
 				mExtractor->mTracks.itemAt(trackindex).mMeta->findCString(kKeyMIMEType, &mime);
-				if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
+				if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)) {
+						mType = MPEG4;
+						isVideo = true;
+				}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
 						mType = AVC;
 						isVideo = true;
 				}else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AAC)) {
@@ -180,8 +185,7 @@ FfmpegSource::FfmpegSource(
 				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8)||!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8X)) {
 					     mType = VP8;
 						 isVideo = true;
-				}
-				else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP9)) { 
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP9)) { 
 				         mType = VP9;
 						 isVideo = true;
 				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_HEVC)) { 
@@ -196,10 +200,13 @@ FfmpegSource::FfmpegSource(
 				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG)) { 
 				         mType = MP3;
 						 isVideo = false;
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AC3)) { 
+				         mType = AC3;
+						 isVideo = false;
 				}
 
 #ifdef DEBUGFILE
-			mFile = fopen (DEBUGFILE, "wb+");
+			if(isVideo) mFile = fopen (DEBUGFILE, "wb+");
 #endif
 
 		}
@@ -288,19 +295,22 @@ bool FfmpegSource::threadLoop()
 		
     mBuffer->meta_data()->findInt64(kKeyTime, &timeUs);
 
-	printf("pts %llx timeUs size %d\n",timeUs,size);
+	if(isVideo) printf("isVideo[%d] pts %llx  size %d\n",isVideo,timeUs,mBuffer->range_length());
 #ifdef DEBUGFILE
-	fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
+	if(isVideo) {
+		fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
+		fflush(mFile);
+	}
 #endif
 
-#ifdef HALSYS	
+#ifdef HALSYS
 	buffer.nAllocLen = size;
 	buffer.nOffset = mBuffer->range_offset();	
 	buffer.nSize = mBuffer->range_length();
 	buffer.nTimeStamp = (timeUs == -1)? -1:timeUs/1000;
 	buffer.nFilledLen =  mBuffer->range_length();
 	buffer.pBuffer = (trid_uint8 *)mBuffer->data();
-	
+#endif	
 	if( size == 0)
 	{
 		flags |= SIGM_BUFFERFLAG_ENDOFSTREAM;
@@ -312,6 +322,8 @@ bool FfmpegSource::threadLoop()
 	if(isVideo) flags |= SIGM_BUFFERFLAG_VIDEO_BL | SIGM_BUFFERFLAG_BLOCKCALL;
 	else flags |= SIGM_BUFFERFLAG_AUDIOFRAME| SIGM_BUFFERFLAG_BLOCKCALL;
 
+	
+#ifdef HALSYS	
 	buffer.nFlags = flags;
 	
 	err = HalSys_Media_PushFrame(mHandle, &buffer);
@@ -359,8 +371,9 @@ FfmpegExtractor::FfmpegExtractor(const sp<DataSource> &source)
 		mFirstFrame(0),
 		mVListSize(0),
 		mAListSize(0),
-		mVideoCodecSpecificDataSize(0){
-
+		mVideoCodecSpecificDataSize(0),
+		pFormatCtx(NULL),
+		pFilter(NULL){
 				addTracks();
 		}
 
@@ -396,6 +409,11 @@ FfmpegExtractor::~FfmpegExtractor() {
 		if(pFormatCtx){
 				av_close_input_file(pFormatCtx);
 				pFormatCtx = NULL;
+		}
+
+		if(pFilter){
+			 av_bitstream_filter_close(pFilter);
+			 pFilter = NULL;
 		}
 }
 
@@ -1076,13 +1094,23 @@ int FfmpegExtractor::addTracks() {
 								case   AV_CODEC_ID_MSMPEG4V1:
 								case   AV_CODEC_ID_MSMPEG4V3:
 								case   AV_CODEC_ID_MPEG4:
-#ifndef SYSTEM_SMP87XX
 										meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_MPEG4);
-#endif
+
 										//meta->setData(kKeyAVCC, 0, codecPrivate, codecPrivateSize);
 										//*pVideoFormat = CNXT_VIDEO_FORMAT_DIVX;
 										printf("FFMPEG VIDEO MSMPEG4/V1/2/3\n");
 										printf("codecPrivateSize video= %d\n",pFormatCtx->streams[uCount]->codec->extradata_size);
+										
+										if(pFormatCtx->streams[uCount]->codec->extradata_invalid == 0 && 
+											pFormatCtx->streams[uCount]->codec->extradata_size > 0)
+										{
+											mVideoCodecSpecificDataSize = pFormatCtx->streams[uCount]->codec->extradata_size;
+											if(mVideoCodecSpecificDataSize > 0){
+												memcpy(&mVideoCodecSpecificData[0],pFormatCtx->streams[uCount]->codec->extradata,pFormatCtx->streams[uCount]->codec->extradata_size);
+												mIsVideoCodecSpecificDataValid = true;
+											}
+										}
+										
 										bVideoCodecSupported = true;
 
 										break;
@@ -1098,16 +1126,14 @@ int FfmpegExtractor::addTracks() {
 										//meta->setData(kKeyAVCC, kTypeAVCC, pFormatCtx->streams[uCount]->codec->extradata, 
 										//	            pFormatCtx->streams[uCount]->codec->extradata_size); 			  
 										printf("FFMPEG VIDEO H264 size %x invalid %x\n",pFormatCtx->streams[uCount]->codec->extradata_size,pFormatCtx->streams[uCount]->codec->extradata_invalid);
-#if 0   //avi extra data is useless. asf/wmv extra data is sps+pps . don't know when use this funtion
-										if(pFormatCtx->streams[uCount]->codec->extradata_invalid == 0) 
-											construct_h264_header(pFormatCtx,uCount,&mVideoCodecSpecificData[0],&mVideoCodecSpecificDataSize);
-#endif
+//avi extra data is useless. asf/wmv extra data is sps+pps.  mkv/mp4 is sps/pps
+										if(pFormatCtx->streams[uCount]->codec->extradata_invalid == 0 && 
+											pFormatCtx->streams[uCount]->codec->extradata_size >0 &&
+											strncasecmp(pFormatCtx->iformat->long_name,"raw H.264 video",15))
+											mIsVideoCodecSpecificDataValid = true;
+
 										printf("codecPrivateSize video= %d\n",mVideoCodecSpecificDataSize);
 										bVideoCodecSupported = true;
-										if(mVideoCodecSpecificDataSize > 0){
-											//	memcpy(&mVideoCodecSpecificData[0],pFormatCtx->streams[uCount]->codec->extradata,pFormatCtx->streams[uCount]->codec->extradata_size);
-												mIsVideoCodecSpecificDataValid = true;
-										}
 										break;
 #if 0
 								case	AV_CODEC_ID_XVID:
@@ -1603,38 +1629,38 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 				Mutex::Autolock autoLock(mVListLock);
 				if(encVideoFrameList.size() <= 0){
 						if(mIsVsdTobeSent && mIsVideoCodecSpecificDataValid){
-								MediaBuffer *buffer = new MediaBuffer(mVideoCodecSpecificDataSize);
+								if((AV_CODEC_ID_H264 != pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id )/* ||
+									!strncasecmp(pFormatCtx->iformat->long_name,"raw H.264 video",15)*/) {
+									MediaBuffer *buffer = new MediaBuffer(mVideoCodecSpecificDataSize);
 								
-								if(mVideoCodecSpecificDataSize < 400)
-								{
-										memcpy((uint8_t *)buffer->data(),mVideoCodecSpecificData,mVideoCodecSpecificDataSize);	 
-										buffer->set_range(0, mVideoCodecSpecificDataSize);
-								}
-								else
-								{
+									if(mVideoCodecSpecificDataSize < 400){
+											memcpy((uint8_t *)buffer->data(),mVideoCodecSpecificData,mVideoCodecSpecificDataSize);	 
+											buffer->set_range(0, mVideoCodecSpecificDataSize);
+									}else {
 										memcpy((uint8_t *)buffer->data(),mVideoCodecSpecificData,400);	
 										buffer->set_range(0, 400);
+									}
+									mIsVsdTobeSent = false;
+									//set the frame time to 0
+									buffer->meta_data()->setInt64(kKeyTime, 0);
+
+									return buffer;
+								}else {
+									pFilter = av_bitstream_filter_init("h264_mp4toannexb");
+									printf("Init h264_mp4toannexb filter\n");
 								}
 								mIsVsdTobeSent = false;
-								//set the frame time to 0
-								buffer->meta_data()->setInt64(kKeyTime, 0);
-
-								return buffer;		 
 						}
 						//printf("Video track prefetch list is empty\n");
 				}else{
 						TrackEncFrame * out = *encVideoFrameList.begin();
 						encVideoFrameList.erase(encVideoFrameList.begin());	   
-						if(NULL != out)
-						{
+
+						if(NULL != out){
 								frame = out->encFrame;
 								bFrameAvailable = true;
 								delete out;
-
 								mVListSize-=frame->size();
-								//ALOGE("vlist size at pop (%d)\n", mVListSize);
-
-
 						}
 						//ALOGI("%s %d\n",__FUNCTION__,__LINE__);
 				}
@@ -1655,7 +1681,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 								printf("specific data\n");
 								return buffer;		 
 						}
-						printf("Audio track prefetch list is empty\n");
+						//printf("Audio track prefetch list is empty\n");
 				}else{
 						TrackEncFrame * out = *encAudioFrameList.begin();
 						encAudioFrameList.erase(encAudioFrameList.begin());
@@ -1704,7 +1730,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 				//Add the frame to track encoded frame list	
 				MediaBuffer *buffer = new MediaBuffer(encFrame.size+8192); //add 8192 bytes 
 
-				printf("encFrame pts %llx dts %llx size %x flag %x stream index %d\n",encFrame.pts,encFrame.dts,encFrame.size,encFrame.flags,encFrame.stream_index);
+				if(mCurrentVideoTrack == encFrame.stream_index) printf("encFrame[%d] pts %llx size %d\n",encFrame.stream_index,encFrame.pts,encFrame.size);
 				//try for pts
 				if((encFrame.pts != 0x8000000000000000LL) && (encFrame.flags & AV_PKT_FLAG_KEY)){
 						int64_t pts;
@@ -1790,8 +1816,15 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 				buffer->set_range(0, encFrame.size);
 				if (mCurrentVideoTrack == encFrame.stream_index) {
 						uint8_t *data = (uint8_t *)buffer->data();
-						if(AV_CODEC_ID_H264 == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id){
-						    memcpy(data,encFrame.data,encFrame.size);
+						if(AV_CODEC_ID_H264 == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id ){
+							if(pFilter != NULL){
+								AVPacket fpkt = encFrame;
+                				int a = av_bitstream_filter_filter(pFilter,pFormatCtx->streams[mCurrentVideoTrack]->codec,
+											NULL, &fpkt.data, &fpkt.size,encFrame.data, encFrame.size, encFrame.flags & AV_PKT_FLAG_KEY);
+                				encFrame.data = fpkt.data;
+                				encFrame.size = fpkt.size;
+							}
+							memcpy(data,encFrame.data,encFrame.size);
 							buffer->set_range(0, encFrame.size);
 						}
 						#if 1
@@ -2117,7 +2150,8 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 						unsigned int    temp32 =0,extradata = 0;
 						if((pFormatCtx->streams[mCurrentAudioTrack]->codec->codec_id ==  AV_CODEC_ID_WMAV1) ||
 										(pFormatCtx->streams[mCurrentAudioTrack]->codec->codec_id ==  AV_CODEC_ID_WMAV2) ||
-										(pFormatCtx->streams[mCurrentAudioTrack]->codec->codec_id ==  AV_CODEC_ID_WMAPRO))
+										(pFormatCtx->streams[mCurrentAudioTrack]->codec->codec_id ==  AV_CODEC_ID_WMAPRO) ||
+										(pFormatCtx->streams[mCurrentAudioTrack]->codec->codec_id ==  AV_CODEC_ID_AC3))
 						{
 						/*
 

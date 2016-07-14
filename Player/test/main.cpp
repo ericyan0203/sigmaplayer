@@ -8,7 +8,7 @@
 #include <unistd.h>
 #endif
 
-#define FILE_PATH 	"d://honolulu.mp3" //"d://halsys.avc"
+#define FILE_PATH 	"d://BBC.mp4"//"d://[H.264 HP][AAC].mp4" //"d://halsys.avc" //[H.264 BP][AC3]-1.mkv
 #define SERVER_IP 	"10.86.62.6"
 #define SERVER_PORT 52116
 
@@ -17,12 +17,13 @@ int main(int argc, char* argv[])
 
 	initialize_string8(); 
 
+
 	sp<SigmaMediaPlayer> player = new SigmaMediaPlayer(SERVER_IP,SERVER_PORT);
 
 	player->setDataSource(FILE_PATH);
 	player->start();
 
-	if(1)
+	while(1)
 	{
 #ifdef WIN32
 				Sleep(100000);

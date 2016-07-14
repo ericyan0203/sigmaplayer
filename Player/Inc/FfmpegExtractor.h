@@ -119,6 +119,7 @@ struct FfmpegExtractor : public MediaExtractor {
 
 			AVFormatContext *pFormatCtx;
 			AVInputFormat	*pInputFileFormat; 
+			AVBitStreamFilterContext * pFilter;
 
 			FfmpegExtractor(const FfmpegExtractor &);
 			FfmpegExtractor &operator=(const FfmpegExtractor &);
