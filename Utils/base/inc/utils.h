@@ -21,7 +21,7 @@
 #define   _UTILS_H 
 
 #include   <stddef.h> 
-
+#include   <Log.h>
 /*self define*/
 typedef signed long long ssize_t; 
 typedef  signed int status_t;
@@ -42,4 +42,6 @@ typedef unsigned int uid_t;
 #define strncasecmp  strnicmp 
 #endif
 
+void utils_init(const char * path = NULL);
+void utils_deinit();
 #endif 

@@ -14,7 +14,7 @@
 //include "pthread.h"
 #endif
 
-#define MAX_DATA_LEN (5*1024*1024)
+#define MAX_DATA_LEN (6*1024*1024)
 #define MAX_HDR_LEN   (1024)
 
 #define DOMAIN_NAME "HalSys"
@@ -34,7 +34,7 @@
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 static char hdr_buf[MAX_HDR_LEN];
-static char data_buf[MAX_DATA_LEN];
+static char data_buf[2][MAX_DATA_LEN];
 static char result_buf[MAX_HDR_LEN];
 
 #if 0
@@ -83,12 +83,12 @@ static __inline halsys_ret halsys_param_fixed_stub(const char * routine,void * a
 	//BUILD_HDR(packet_header,length ,DOMAIN_NAME);
 	//BUILD_DATA(packet_data,payload_size,(ROUTINE));
 	
-	memcpy((void *)data_buf,(void *)&packet_data,sizeof(halsys_packet_data));
+	memcpy((void *)data_buf[0],(void *)&packet_data,sizeof(halsys_packet_data));
 	
 	if(payload_size) 
-		memcpy((void *)(data_buf + sizeof(halsys_packet_data)),(void *)arg,payload_size);
+		memcpy((void *)(data_buf[0] + sizeof(halsys_packet_data)),(void *)arg,payload_size);
 	
-	build_msg(&packet,sizeof(halsys_packet_header),(char *)&packet_header,length,data_buf,sizeof(halsys_ret),(char *)&ret);
+	build_msg(&packet,sizeof(halsys_packet_header),(char *)&packet_header,length,data_buf[0],sizeof(halsys_ret),(char *)&ret);
 
 	send_msg(&packet);
 
@@ -159,7 +159,11 @@ halsys_ret halsys_media_pushframe(media_push_param * arg) {
 	halsys_ret ret;
 	halsys_packet_header packet_header;
 	static halsys_packet_data   packet_data;
+	char * buffer = NULL;
 	unsigned int length = sizeof(halsys_packet_data) + sizeof(media_push_param)+ arg->alloc_size;
+	if(arg->flags&0x4) buffer = data_buf[0];
+	else if(arg->flags&0x1) buffer = data_buf[1];
+	else buffer = data_buf[0];
 	
 	packet_header.length = length;
 	strncpy(packet_header.domain_name,DOMAIN_NAME,HALSYS_NAME_LENGTH);	
@@ -169,11 +173,11 @@ halsys_ret halsys_media_pushframe(media_push_param * arg) {
 	//BUILD_HDR(packet_header,length ,DOMAIN_NAME);
 	//BUILD_DATA(packet_data,sizeof(halsys_common_param),ROUTINE);
 	
-	memcpy((void *)data_buf,(void *)&packet_data,sizeof(halsys_packet_data));
-	memcpy((void *)(data_buf + sizeof(halsys_packet_data)),(void *)arg,sizeof(media_push_param));
-	if(arg->alloc_size > 0) memcpy((void *)(data_buf + sizeof(halsys_packet_data)+sizeof(media_push_param)),(void *)arg->data,arg->alloc_size);
+	memcpy((void *)buffer,(void *)&packet_data,sizeof(halsys_packet_data));
+	memcpy((void *)(buffer + sizeof(halsys_packet_data)),(void *)arg,sizeof(media_push_param));
+	if(arg->alloc_size > 0) memcpy((void *)(buffer + sizeof(halsys_packet_data)+sizeof(media_push_param)),(void *)arg->data,arg->alloc_size);
 	
-	build_msg(&packet,sizeof(halsys_packet_header),&packet_header,length,data_buf,sizeof(halsys_ret),(char *)&ret);
+	build_msg(&packet,sizeof(halsys_packet_header),&packet_header,length,buffer,sizeof(halsys_ret),(char *)&ret);
 
 	send_msg(&packet);
 

@@ -23,7 +23,7 @@
 #include "MediaDefs.h"
 #include <String8.h>
 #include <string.h>
-#include <utils.h>
+#include <Utils.h>
 extern "C" {
 #if 1
 #include "ffmpeg/ffmpeg_rv_sc.h"
@@ -42,13 +42,17 @@ extern "C" {
 #include <unistd.h>
 #endif
 
-#define DEBUGFILE "d://ffmpeg.es"
+//#define DEBUGFILE "d://ffmpeg.es"
 
 static bool bIsAvRegistered;
 
 #define FUN_START
 #define FUN_END
-#define HALSYS
+#define HALSYS 1
+
+
+//Mutex mHalSysLock; //temperary solution for thread confilict
+
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -295,14 +299,14 @@ bool FfmpegSource::threadLoop()
 		
     mBuffer->meta_data()->findInt64(kKeyTime, &timeUs);
 
-	printf("%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
+	utils_log(AV_DUMP_ERROR,"%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
 #ifdef DEBUGFILE
 	if(isVideo) {
 		fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
 		fflush(mFile);
 	}
 #endif
-
+	
 #ifdef HALSYS
 	buffer.nAllocLen = size;
 	buffer.nOffset = mBuffer->range_offset();	
@@ -322,17 +326,18 @@ bool FfmpegSource::threadLoop()
 	if(isVideo) flags |= SIGM_BUFFERFLAG_VIDEO_BL | SIGM_BUFFERFLAG_BLOCKCALL;
 	else flags |= SIGM_BUFFERFLAG_AUDIOFRAME| SIGM_BUFFERFLAG_BLOCKCALL;
 
-	
 #ifdef HALSYS	
 	buffer.nFlags = flags;
-	
+
+	//mHalSysLock.lock();	
 	err = HalSys_Media_PushFrame(mHandle, &buffer);
+	//mHalSysLock.unlock();	
 	if(err == SIGM_ErrorNone) {
 		mBuffer->release();
     	mBuffer = NULL;
 	}
 	else{
-		printf("ret %x\n",err);
+		utils_log(AV_DUMP_ERROR,"push error ret %x\n",err);
 	}
 #else
 	mBuffer->release();
@@ -1581,7 +1586,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 				int seek_ret = 0;
 				{
-						//Mutex::Autolock autoLock(mLock);
+					//	Mutex::Autolock autoLock(mLock);
 						seek_ret = av_seek_frame(pFormatCtx, trackIndex, seek_target, AVSEEK_FLAG_ANY);
 				}
 				if(seek_ret < 0) {
@@ -1650,7 +1655,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 									return buffer;
 								}else {
-									//Mutex::Autolock autoLock(mLock);
+								//	Mutex::Autolock autoLock(mLock);
 									pFilter = av_bitstream_filter_init("h264_mp4toannexb");
 									printf("Init h264_mp4toannexb filter\n");
 								}
@@ -1703,7 +1708,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 		while(!bFrameAvailable && !mEof){	
 				/* Read frame */
 				{
-						//Mutex::Autolock autoLock(mLock);
+					//	Mutex::Autolock autoLock(mLock);
 						Ret = av_read_frame(pFormatCtx, &encFrame);
 				//		ALOGI("after av_read_frame\n");
 						if(Ret < 0){
@@ -1814,7 +1819,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 						if(AV_CODEC_ID_H264 == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id ){
 							if(pFilter != NULL){
 								AVPacket fpkt = encFrame;
-							//	Mutex::Autolock autoLock(mLock);
+							//  Mutex::Autolock autoLock(mLock);
                 				int a = av_bitstream_filter_filter(pFilter,pFormatCtx->streams[mCurrentVideoTrack]->codec,
 											NULL, &fpkt.data, &fpkt.size,encFrame.data, encFrame.size, encFrame.flags & AV_PKT_FLAG_KEY);
                 				encFrame.data = fpkt.data;
@@ -2125,7 +2130,6 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 								t->encFrame = buffer;
 
 								{
-									//MIG
 									//lock the list while pushing
 									Mutex::Autolock autoLock(mVListLock);
 									encVideoFrameList.push_back(t);
@@ -2167,7 +2171,6 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 								TrackEncFrame* t = new TrackEncFrame();
 								t->encFrame = buffer;
-								//MIG
 								//lock the list while pushing
 								{	
 									Mutex::Autolock autoLock(mAListLock);
@@ -2193,7 +2196,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 				//Free the frame
 				{
-				//	Mutex::Autolock autoLock(mLock);
+					//Mutex::Autolock autoLock(mLock);
 					av_free_packet(&encFrame);
 				}
 
@@ -2224,7 +2227,7 @@ bool SniffFfmpeg(
 			    printf("register all\n");
 				av_register_all();
 				av_log_set_level(AV_LOG_WARNING);
-				av_log_set_callback(Ffmpeg_log_callback);
+				//av_log_set_callback(Ffmpeg_log_callback);
 				bIsAvRegistered = false;
 		}
 		streamBuf = source->getUri();

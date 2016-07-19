@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 #include <stdint.h>
-#include <utils.h>
+#include <Utils.h>
 #include <stdio.h>
 
 #include "SigmaMediaPlayerImpl.h"

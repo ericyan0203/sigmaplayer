@@ -9,8 +9,8 @@
 #include "SIGM_Media_API.h"
 #include "halsys_stub.h"
 
-#define data_len  (3*1024*1024)
-static char send_buf[data_len];
+#define data_len  (6*1024*1024)
+static char send_buf[2][data_len];
 
 Error_Type_e HalSys_Media_Initialize(void) {
 	halsys_ret ret;
@@ -126,8 +126,11 @@ Error_Type_e HalSys_Media_Flush(sigma_handle_t ptInst, FlushMode_e eMode){
 
 Error_Type_e HalSys_Media_PushFrame(sigma_handle_t ptInst, Media_Buffer_t* pMediaBuffer) {
 	halsys_ret ret;
-	media_push_param * param = (media_push_param *)send_buf;
-
+	media_push_param * param = NULL;
+	if(pMediaBuffer->nFlags&SIGM_BUFFERFLAG_VIDEO_BL) param = (media_push_param *)send_buf[0];
+	else if(pMediaBuffer->nFlags&SIGM_BUFFERFLAG_AUDIOFRAME) param = (media_push_param *)send_buf[1];
+	else param = (media_push_param *)send_buf[0];
+	
 	param->instance = (unsigned int)ptInst;
 	param->size = pMediaBuffer->nSize;
 	param->alloc_size = pMediaBuffer->nAllocLen;

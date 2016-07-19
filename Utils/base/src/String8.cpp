@@ -16,7 +16,7 @@
 
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
-#include <utils.h>
+#include <Utils.h>
 
 #include <String8.h>
 #include <SharedBuffer.h>
