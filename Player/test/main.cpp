@@ -15,22 +15,53 @@
 
 int main(int argc, char* argv[])
 {
-	utils_init(LOG);
+	utils_init();
 	
 	sp<SigmaMediaPlayer> player = new SigmaMediaPlayer(SERVER_IP,SERVER_PORT);
 
 	player->setDataSource(FILE_PATH);
 	player->start();
 
-	while(1)
+	if(1)
 	{
 #ifdef WIN32
-				Sleep(1000000);
+				Sleep(100000);
 #else
 			 	usleep(50 * US_PER_MS);
 #endif
 	}
 	player->stop();
+
+#if 1//def LOOP_TEST
+	player->setDataSource(FILE_PATH);
+
+	player->start();
+
+	if(1)
+	{
+#ifdef WIN32
+				Sleep(100000);
+#else
+			 	usleep(50 * US_PER_MS);
+#endif
+	}
+	player->stop();
+
+	player->setDataSource("d://BBC.mp4");
+
+	player->start();
+
+	if(1)
+	{
+#ifdef WIN32
+				Sleep(100000);
+#else
+			 	usleep(50 * US_PER_MS);
+#endif
+	}
+	player->stop();
+#endif
+	
 	player.clear();
 
 	utils_deinit();

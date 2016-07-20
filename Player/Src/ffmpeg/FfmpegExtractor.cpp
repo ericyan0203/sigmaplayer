@@ -115,6 +115,8 @@ struct FfmpegSource : public MediaSource {
 
 		virtual bool threadLoop();
 
+		virtual int  requestExitAndWait();
+
 		private:
 		enum Type {
 				AVC,
@@ -239,9 +241,6 @@ sp<MetaData> FfmpegSource::getFormat() {
 		return mExtractor->mTracks.itemAt(mTrackIndex).mMeta;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////
 Error_Type_e FfmpegSource::read(
 				MediaBuffer **out, const ReadOptions *options) {
 		*out = NULL;
@@ -351,6 +350,12 @@ bool FfmpegSource::threadLoop()
 #endif
 
 	return true;
+}
+
+int FfmpegSource::requestExitAndWait() {
+	int ret = Thread::requestExitAndWait();
+	bEOS = false;
+	return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1301,7 +1306,7 @@ int FfmpegExtractor::addTracks() {
 										}
 
 										break;
-
+#if 0
 								case    AV_CODEC_ID_AAC :
 										meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_AAC);
 										bAudioCodecSupported = true;
@@ -1456,7 +1461,7 @@ int FfmpegExtractor::addTracks() {
 										}												
 										//*pAudioFormat = CNXT_AUDIO_FMT_REALAUDIO;
 										break;
-
+#endif
 								default :
 										printf("Unsupported audio Format %s %d codecid %x\n",__FILE__,__LINE__,pFormatCtx->streams[uCount]->codec->codec_id);
 										break;         
@@ -1611,6 +1616,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 						}
 						while(encAudioFrameList.size() > 0){
+							    printf("audio frame size %x\n",encAudioFrameList.size());
 								TrackEncFrame * out = *encAudioFrameList.begin();
 								encAudioFrameList.erase(encAudioFrameList.begin());
 								if(NULL!=out && NULL!=out->encFrame){

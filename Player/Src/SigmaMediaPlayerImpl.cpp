@@ -309,7 +309,9 @@ void SigmaMediaPlayerImpl::reset_l() {
 	printf("reset_l \n");
 
     mAudioTrack.clear();
+	haveAudio = false;
     mVideoTrack.clear();
+	haveVideo = false;
     mExtractor.clear();
 
     mDurationUs = -1;
@@ -425,7 +427,17 @@ Error_Type_e SigmaMediaPlayerImpl::stop() {
 
 Error_Type_e SigmaMediaPlayerImpl::stop_l(){
 	Error_Type_e ret = SIGM_ErrorNone;
-	
+
+	if(haveVideo) {
+		printf("before video ExitAndWait\n");
+		mVideoTrack->requestExitAndWait();
+		printf("after video ExitAndWait\n");
+	}
+	if(haveAudio) {
+		printf("before audio ExitAndWait\n");
+		mAudioTrack->requestExitAndWait();
+		printf("after vidoe ExitAndWait\n");
+	}
 #if HALSYS
 	if(mHandle != (sigma_handle_t)(-1) && (mFlags|PLAYING)){
 		ret = HalSys_Media_Stop(mHandle);	
@@ -530,10 +542,10 @@ Error_Type_e SigmaMediaPlayerImpl::prepare_l() {
     tMediaConfig.tVideoConfig.eVideoStreamMode = SIGM_STREAMMODE_NORMAL;
     tMediaConfig.tVideoConfig.eVideoSink = (Video_Sink_e)((mVideoFormat== SIGM_VIDEO_CodingUnused)?0:SIGM_VIDEO_SINK_MP);
 	tMediaConfig.tVideoConfig.eMuxType = SIGM_MUX_ES;
-    ret = HalSys_Media_Open(&tMediaConfig, &mHandle);
+	ret = HalSys_Media_Open(&tMediaConfig, &mHandle);
 
 	for (size_t i = 0; i < mExtractor->countTracks(); ++i) {
-        sp<MetaData> meta = mExtractor->getTrackMetaData(i);
+		sp<MetaData> meta = mExtractor->getTrackMetaData(i);
 		meta->setInt32(kKeyPlatformPrivate, (int32_t)mHandle);
 	}
 #endif
