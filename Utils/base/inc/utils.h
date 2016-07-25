@@ -22,6 +22,19 @@
 
 #include   <stddef.h> 
 #include   <Log.h>
+
+
+#ifdef	WIN32 
+#pragma   comment(lib,"pthreadVC2.lib")
+#pragma   comment(lib,"avcodec.lib")
+#pragma   comment(lib,"avdevice.lib")
+#pragma   comment(lib,"avfilter.lib")
+#pragma   comment(lib,"avformat.lib")
+#pragma   comment(lib,"avutil.lib")
+#pragma   comment(lib,"postproc.lib")
+#pragma   comment(lib,"swscale.lib")
+#endif
+
 /*self define*/
 typedef signed long long ssize_t; 
 typedef  signed int status_t;

@@ -48,7 +48,7 @@ static bool bIsAvRegistered;
 
 #define FUN_START
 #define FUN_END
-#define HALSYS 1
+//#define HALSYS 1
 
 
 //Mutex mHalSysLock; //temperary solution for thread confilict
