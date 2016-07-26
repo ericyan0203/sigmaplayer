@@ -55,6 +55,10 @@ typedef unsigned int uid_t;
 #define strncasecmp  strnicmp 
 #endif
 
+#ifndef WIN32  
+#define Sleep(x) usleep(x*1000); 
+#endif
+			 	
 void utils_init(const char * path = NULL);
 void utils_deinit();
 #endif 

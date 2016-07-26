@@ -476,13 +476,40 @@ Error_Type_e SigmaMediaPlayerImpl::pause_l(bool at_eos) {
     modifyFlags(PAUSED, SET);
 
 #ifdef HALSYS
-	if(mHandle == (sigma_handle_t)-1) {
+	if(mHandle != (sigma_handle_t)-1) {
 		ret = HalSys_Media_Pause(mHandle);
 	}
 #endif
 
     return ret;
 }
+
+Error_Type_e SigmaMediaPlayerImpl::resume() {
+    Mutex::Autolock autoLock(mLock);
+
+    return resume_l();
+}
+
+Error_Type_e SigmaMediaPlayerImpl::resume_l() {
+	Error_Type_e ret = SIGM_ErrorNone;
+	
+    if (!(mFlags & PAUSED)) {    
+        return ret;
+    }
+
+    modifyFlags(PAUSED, CLEAR);
+	
+	modifyFlags(PLAYING, CLEAR);
+	
+#ifdef HALSYS
+	if(mHandle != (sigma_handle_t)-1) {
+		ret = HalSys_Media_Resume(mHandle);
+	}
+#endif
+
+    return ret;
+}
+
 
 bool SigmaMediaPlayerImpl::isPlaying() const {
     return (mFlags & PLAYING) || (mFlags & CACHE_UNDERRUN);

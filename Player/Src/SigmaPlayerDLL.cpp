@@ -18,7 +18,7 @@ char mIP[256]= {0};
 
 int InitPlatform(const char * ip, const int port){
 	utils_init();
-	strncpy(mIP,ip,sizeof(ip));
+	strncpy(mIP,ip,10);
 	mPort = port;
 	return 0;
 }
@@ -41,6 +41,29 @@ int  DestroyPlayer(void * phandle) {
 	if(phandle == player.get()) {
 	 	player->stop();
 	 	player.clear();
+	}else {
+		printf("handle pointer isn't correct\n");
+		return -1;
+	}
+
+	 return 0;
+}
+
+
+int  PausePlayer(void * phandle) {
+	if(phandle == player.get()) {
+	 	player->pause();
+	}else {
+		printf("handle pointer isn't correct\n");
+		return -1;
+	}
+
+	 return 0;
+}
+
+int  ResumePlayer(void * phandle) {
+	if(phandle == player.get()) {
+	 	player->resume();
 	}else {
 		printf("handle pointer isn't correct\n");
 		return -1;

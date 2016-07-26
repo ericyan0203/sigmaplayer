@@ -343,11 +343,8 @@ bool FfmpegSource::threadLoop()
     mBuffer = NULL;
 #endif
 	//else  keep the back up the data
-#ifdef WIN32
-				Sleep(1);
-#else
-			 	usleep(1 * US_PER_MS);
-#endif
+	Sleep(1);
+
 
 	return true;
 }

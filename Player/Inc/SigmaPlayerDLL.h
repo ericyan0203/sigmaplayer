@@ -9,4 +9,8 @@ extern "C"  int  __declspec(dllexport)CreatePlayer(const char * url ,void** phan
 
 extern "C"  int  __declspec(dllexport)DestroyPlayer(void * phandle);
 
+extern "C"  int  __declspec(dllexport)PausePlayer(void * phandle);
+
+extern "C"  int  __declspec(dllexport)ResumePlayer(void * phandle);
+
 #endif

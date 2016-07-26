@@ -47,8 +47,11 @@ Error_Type_e SigmaMediaPlayer::stop() {
 }
 
 Error_Type_e SigmaMediaPlayer::pause() {
-
     return mPlayer->pause();
+}
+
+Error_Type_e SigmaMediaPlayer::resume() {
+	return mPlayer->resume();
 }
 
 bool SigmaMediaPlayer::isPlaying() {
@@ -57,7 +60,6 @@ bool SigmaMediaPlayer::isPlaying() {
 
 Error_Type_e SigmaMediaPlayer::seekTo(int msec) {
     Error_Type_e err = mPlayer->seekTo((int64_t)msec * 1000);
-
     return err;
 }
 

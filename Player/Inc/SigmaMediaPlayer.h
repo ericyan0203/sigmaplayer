@@ -31,6 +31,7 @@ struct SigmaMediaPlayer : public ISigmaPlayer {
     virtual Error_Type_e start();
     virtual Error_Type_e stop();
     virtual Error_Type_e pause();
+	virtual Error_Type_e resume();
     virtual bool isPlaying();
     virtual Error_Type_e seekTo(int msec);
     virtual Error_Type_e reset();

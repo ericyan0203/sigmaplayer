@@ -28,6 +28,7 @@ struct SigmaMediaPlayerImpl {
     Error_Type_e play();
 	Error_Type_e stop();
     Error_Type_e pause();
+	Error_Type_e resume();
 
     bool isPlaying() const;
 
@@ -152,6 +153,7 @@ private:
     void reset_l();
     Error_Type_e seekTo_l(int64_t timeUs);
     Error_Type_e pause_l(bool at_eos = false);
+	Error_Type_e resume_l();
 
 	Error_Type_e prepare_l();
   
