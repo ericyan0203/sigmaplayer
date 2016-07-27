@@ -19,7 +19,6 @@ enum media_event_type {
 
 struct SigmaMediaPlayer : public ISigmaPlayer {
     SigmaMediaPlayer();
-	SigmaMediaPlayer(const char * ip, uint32_t port);
 	virtual ~SigmaMediaPlayer();
 #if 0
     virtual Error_Type_e setUID(uid_t uid);

@@ -18,7 +18,7 @@ Error_Type_e HalSys_Initialize(BoardConfig_t* ptBoardConfig) {
 Error_Type_e HalSys_Deinit(void){
 	halsys_ret ret;
 	ret = halsys_deinit(NULL);
-	return (Error_Type_e)(ret.common_ret.ret);
+	return SIGM_ErrorNone;
 }	
 
 //Error_Type_e HalSys_Suspend(void);

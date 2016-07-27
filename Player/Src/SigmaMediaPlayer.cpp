@@ -10,13 +10,7 @@ SigmaMediaPlayer::SigmaMediaPlayer()
 }
 
 
-SigmaMediaPlayer::SigmaMediaPlayer(const char * ip, uint32_t port) 
-	:mPlayer(new SigmaMediaPlayerImpl(ip,port)){
-	
-}	
-
 SigmaMediaPlayer::~SigmaMediaPlayer() {
-    
     reset();
 
     delete mPlayer;

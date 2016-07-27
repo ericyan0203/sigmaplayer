@@ -161,9 +161,8 @@ halsys_ret halsys_media_pushframe(media_push_param * arg) {
 	static halsys_packet_data   packet_data;
 	char * buffer = NULL;
 	unsigned int length = sizeof(halsys_packet_data) + sizeof(media_push_param)+ arg->alloc_size;
-	if(arg->flags&0x4) buffer = data_buf[0];
-	else if(arg->flags&0x1) buffer = data_buf[1];
-	else buffer = data_buf[0];
+
+	buffer = data_buf[0];
 	
 	packet_header.length = length;
 	strncpy(packet_header.domain_name,DOMAIN_NAME,HALSYS_NAME_LENGTH);	

@@ -127,9 +127,8 @@ Error_Type_e HalSys_Media_Flush(sigma_handle_t ptInst, FlushMode_e eMode){
 Error_Type_e HalSys_Media_PushFrame(sigma_handle_t ptInst, Media_Buffer_t* pMediaBuffer) {
 	halsys_ret ret;
 	media_push_param * param = NULL;
-	if(pMediaBuffer->nFlags&SIGM_BUFFERFLAG_VIDEO_BL) param = (media_push_param *)send_buf[0];
-	else if(pMediaBuffer->nFlags&SIGM_BUFFERFLAG_AUDIOFRAME) param = (media_push_param *)send_buf[1];
-	else param = (media_push_param *)send_buf[0];
+
+	param = (media_push_param *)send_buf[0];
 	
 	param->instance = (unsigned int)ptInst;
 	param->size = pMediaBuffer->nSize;

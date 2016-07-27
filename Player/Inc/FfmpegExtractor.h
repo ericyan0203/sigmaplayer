@@ -4,6 +4,9 @@
 
 #include "MediaExtractor.h"
 #include "MediaBuffer.h"
+#include "MediaSource.h"
+#include "SigmaMediaPlayerImpl.h"
+
 #include <Vector.h>
 #include <List.h>
 
@@ -12,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <Threads.h>
+
+#include "SIGM_Types.h"
 
 #define INITIAL_STREAM_BUF_SIZE 512 * 1024
 
@@ -132,6 +137,62 @@ struct FfmpegExtractor : public MediaExtractor {
 
 			static Vector<avcontext> mContexts;
 
+};
+
+struct FfmpegSource : public MediaSource {
+		FfmpegSource(
+						const sp<FfmpegExtractor> &extractor,  size_t trackindex, size_t demuxreftrackindex);
+
+		virtual Error_Type_e start(MetaData *params);
+		virtual Error_Type_e stop();
+
+		virtual sp<MetaData> getFormat();
+
+		virtual Error_Type_e read(
+						MediaBuffer **buffer, const ReadOptions *options);
+
+		virtual bool threadLoop();
+
+		virtual int  requestExitAndWait();
+	
+		void setListener(const wp<HalSysClient> &listener);
+
+		private:
+		enum Type {
+				AVC,
+				AAC,
+				WMV,
+				WMA,
+				RV,
+				RA,
+				VP6,
+				VP8,
+				VP9,
+				HEVC,
+				MP1,
+				MP2,
+				MP3,
+				AC3,
+				MPEG4,
+				OTHER
+		};
+
+		sp<FfmpegExtractor> mExtractor;
+		size_t mTrackIndex;
+		size_t mDemuxRefTrackIndex;
+		Type mType;
+		bool isVideo;
+		
+		MediaBuffer *mBuffer;
+		bool bEOS;
+		
+		wp<HalSysClient> mListener;
+#ifdef DEBUGFILE
+		FILE * mFile;
+#endif
+		//virtual ~FfmpegSource(){};
+		FfmpegSource(const FfmpegSource &);
+		FfmpegSource &operator=(const FfmpegSource &);
 };
 
 bool SniffFfmpeg(

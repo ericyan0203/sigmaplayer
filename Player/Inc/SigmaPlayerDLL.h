@@ -13,4 +13,7 @@ extern "C"  int  __declspec(dllexport)PausePlayer(void * phandle);
 
 extern "C"  int  __declspec(dllexport)ResumePlayer(void * phandle);
 
+extern "C"  int  __declspec(dllexport)FlushPlayer(void * phandle,unsigned long long ms);
+
+extern "C"  int  __declspec(dllexport)GetPlayerDuration(void * phandle,unsigned long long * duration);
 #endif

@@ -21,6 +21,7 @@
 #include "MediaSource.h"
 #include "MetaData.h"
 #include "MediaDefs.h"
+#include "SigmaMediaPlayerImpl.h"
 #include <String8.h>
 #include <string.h>
 #include <Utils.h>
@@ -33,7 +34,6 @@ extern "C" {
 }
 #include <ctype.h>
 
-#include "SIGM_Types.h"
 #include "SIGM_Media_API.h"
 
 #ifdef WIN32
@@ -101,58 +101,6 @@ void Ffmpeg_log_callback(void* ptr, int level, const char* fmt, va_list vl)
   //  LOG_PRI_VA(ANDROID_LOG_WARN,LOG_TAG,fmt,vl);
 }
 
-struct FfmpegSource : public MediaSource {
-		FfmpegSource(
-						const sp<FfmpegExtractor> &extractor,  size_t trackindex, size_t demuxreftrackindex);
-
-		virtual Error_Type_e start(MetaData *params);
-		virtual Error_Type_e stop();
-
-		virtual sp<MetaData> getFormat();
-
-		virtual Error_Type_e read(
-						MediaBuffer **buffer, const ReadOptions *options);
-
-		virtual bool threadLoop();
-
-		virtual int  requestExitAndWait();
-
-		private:
-		enum Type {
-				AVC,
-				AAC,
-				WMV,
-				WMA,
-				RV,
-				RA,
-				VP6,
-				VP8,
-				VP9,
-				HEVC,
-				MP1,
-				MP2,
-				MP3,
-				AC3,
-				MPEG4,
-				OTHER
-		};
-
-		sp<FfmpegExtractor> mExtractor;
-		size_t mTrackIndex;
-		size_t mDemuxRefTrackIndex;
-		Type mType;
-		bool isVideo;
-		sigma_handle_t mHandle;
-		MediaBuffer *mBuffer;
-		bool bEOS;
-#ifdef DEBUGFILE
-		FILE * mFile;
-#endif
-		//virtual ~FfmpegSource(){};
-		FfmpegSource(const FfmpegSource &);
-		FfmpegSource &operator=(const FfmpegSource &);
-};
-
 FfmpegSource::FfmpegSource(
 				const sp<FfmpegExtractor> &extractor, size_t trackindex, size_t demuxreftrackindex)
 		: mExtractor(extractor),
@@ -218,18 +166,8 @@ FfmpegSource::FfmpegSource(
 		}
 
 Error_Type_e FfmpegSource::start(MetaData *params) {
-		mHandle = (sigma_handle_t)-1;
-#ifdef HALSYS
-		if(mExtractor->mTracks.itemAt(mTrackIndex).mMeta->findInt32(kKeyPlatformPrivate, (int32_t *)&mHandle)){
-			run();
-			return SIGM_ErrorNone;
-		}
-		else
-			return SIGM_ErrorFailed;
-#else
 		run();
 		return SIGM_ErrorNone;
-#endif
 }
 
 Error_Type_e FfmpegSource::stop() {
@@ -240,6 +178,7 @@ Error_Type_e FfmpegSource::stop() {
 sp<MetaData> FfmpegSource::getFormat() {
 		return mExtractor->mTracks.itemAt(mTrackIndex).mMeta;
 }
+
 
 Error_Type_e FfmpegSource::read(
 				MediaBuffer **out, const ReadOptions *options) {
@@ -328,9 +267,14 @@ bool FfmpegSource::threadLoop()
 #ifdef HALSYS	
 	buffer.nFlags = flags;
 
-	//mHalSysLock.lock();	
-	err = HalSys_Media_PushFrame(mHandle, &buffer);
-	//mHalSysLock.unlock();	
+	 if (mListener != NULL) {
+        sp<HalSysClient> listener = mListener.promote();
+
+        if (listener != NULL) {
+            err = listener->handleBuffer(&buffer);
+        }
+    }
+	
 	if(err == SIGM_ErrorNone) {
 		mBuffer->release();
     	mBuffer = NULL;
@@ -344,8 +288,6 @@ bool FfmpegSource::threadLoop()
 #endif
 	//else  keep the back up the data
 	Sleep(1);
-
-
 	return true;
 }
 
@@ -355,6 +297,9 @@ int FfmpegSource::requestExitAndWait() {
 	return ret;
 }
 
+void FfmpegSource::setListener(const wp<HalSysClient> &listener) {
+	mListener = listener;
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 FfmpegExtractor::FfmpegExtractor(const sp<DataSource> &source)

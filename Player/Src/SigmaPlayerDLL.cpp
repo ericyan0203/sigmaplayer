@@ -5,6 +5,7 @@
 #include  <Utils.h>
 #include  <string.h>
 #include  <stdio.h>
+#include  <utils_socket.h>
 #if 0
 #define FILE_PATH 	"d://[H.264 BP][AC3]-1.mkv"//"d://[H.264 BP][AC3]-1.mkv"//"d://BBC.mp4"//"d://[H.264 HP][AAC].mp4" //"d://halsys.avc" //[H.264 BP][AC3]-1.mkv
 #define SERVER_IP 	"10.86.62.6"
@@ -20,15 +21,18 @@ int InitPlatform(const char * ip, const int port){
 	utils_init();
 	strncpy(mIP,ip,10);
 	mPort = port;
+
+	socket_connect(ip,port, 3000);
 	return 0;
 }
 
 int DeInitPlatform() {
 	utils_deinit();
+	socket_disconnect();
 	return 0;
 }
 int  CreatePlayer(const char * url,void** phandle){
-	 player = new SigmaMediaPlayer(mIP,mPort);
+	 player = new SigmaMediaPlayer();
 	 player->setDataSource(url);
 	 player->start();
 
@@ -69,5 +73,15 @@ int  ResumePlayer(void * phandle) {
 		return -1;
 	}
 
+	 return 0;
+}
+
+
+int FlushPlayer(void * phandle,unsigned long long ms) {
+	 return 0;
+}
+
+int GetPlayerDuration(void * phandle,unsigned long long * duration) {
+	 *duration = 0;
 	 return 0;
 }

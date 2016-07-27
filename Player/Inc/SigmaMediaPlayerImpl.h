@@ -14,7 +14,6 @@
 
 struct SigmaMediaPlayerImpl {
     SigmaMediaPlayerImpl();
-	SigmaMediaPlayerImpl(const char * ip, int32_t port);
     ~SigmaMediaPlayerImpl();
 
     void setUID(uid_t uid);
@@ -91,16 +90,11 @@ private:
 	
     String8 mUri;
 
-	String8 mIP;
-	uint32_t mPort;
-
 	bool haveAudio;
 	Video_CodingType_e mVideoFormat;
 		
     bool haveVideo;
 	Audio_CodingType_e mAudioFormat;
-
-	sigma_handle_t mHandle;
 	
     sp<DataSource> mFileSource;
 
@@ -140,7 +134,7 @@ private:
     MediaBuffer *mVideoBuffer;    
     sp<MediaExtractor> mExtractor;
 
-	HalSysClient mClient;
+	sp<HalSysClient> mClient;
 
     Error_Type_e setDataSource_l(const char *uri);
     Error_Type_e setDataSource_l(const sp<DataSource> &dataSource);

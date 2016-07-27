@@ -25,6 +25,7 @@
 #include "MediaExtractor.h"
 #include "MediaSource.h"
 #include "MetaData.h"
+#include "FfmpegExtractor.h"
 
 #define DEFAULT_IP  	"127.0.0.1"
 #define DEFAULT_PORT 	0
@@ -82,40 +83,14 @@ SigmaMediaPlayerImpl::SigmaMediaPlayerImpl()
       mDisplayHeight(0),
       mFlags(0),
       mExtractorFlags(0),
-      mIP(DEFAULT_IP),
-      mPort(DEFAULT_PORT),
       haveAudio(0),
       haveVideo(0),
       mVideoFormat(SIGM_VIDEO_CodingUnused),
       mAudioFormat(SIGM_AUDIO_CodingUnused),
-      mHandle((void *)-1){
-
+      mClient(new HalSysClient(MEDIA)){
 	//Init Platform
 #ifdef HALSYS
-	mClient.connect(mIP,mPort);
-#endif	
-    DataSource::RegisterDefaultSniffers();
-
-    reset();
-}
-
-SigmaMediaPlayerImpl::SigmaMediaPlayerImpl(const char * ip, int32_t port)
-    : mUIDValid(false),
-      mDisplayWidth(0),
-      mDisplayHeight(0),
-      mFlags(0),
-      mExtractorFlags(0),
-      mIP(ip),
-      mPort(port),
-      haveAudio(0),
-      haveVideo(0),
-      mVideoFormat(SIGM_VIDEO_CodingUnused),
-      mAudioFormat(SIGM_AUDIO_CodingUnused){
-	
-	mHandle = (sigma_handle_t)-1;
-	//Init Platform
-#ifdef HALSYS
-	mClient.connect(mIP,mPort);
+	mClient->connect();
 #endif	
     DataSource::RegisterDefaultSniffers();
 
@@ -127,9 +102,9 @@ SigmaMediaPlayerImpl::~SigmaMediaPlayerImpl() {
 
 	//disconnect halsys platform
 #ifdef HALSYS
-    mClient.disconnect();
+    mClient->disconnect();
 #endif
-
+	mClient.clear();
 }
 
 void SigmaMediaPlayerImpl::setUID(uid_t uid) {
@@ -290,7 +265,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
     mExtractorFlags = extractor->flags();
 	
 #ifdef HALSYS
-	ret = HalSys_Media_Initialize();
+	ret = mClient->init();
 #endif
     return ret;
 }
@@ -405,17 +380,24 @@ Error_Type_e SigmaMediaPlayerImpl::play_l() {
     }
 
 #ifdef HALSYS
-	if(mHandle != (sigma_handle_t)-1) 
-		ret = HalSys_Media_Start(mHandle);	
+	ret = mClient->start();	
 #endif
-
 
 	if(ret != SIGM_ErrorNone){
 		 modifyFlags((PLAYING | FIRST_FRAME), CLEAR);
 	}
 
-	if(haveVideo) mVideoTrack->start(NULL);
-	if(haveAudio) mAudioTrack->start(NULL);
+	if(haveVideo) {
+		sp<FfmpegSource> source = dynamic_cast<FfmpegSource *>(mVideoTrack.get());
+		source->setListener(mClient);
+		mVideoTrack->start(NULL);
+	}
+	
+	if(haveAudio) {
+		sp<FfmpegSource> source = dynamic_cast<FfmpegSource *>(mAudioTrack.get());
+		source->setListener(mClient);
+		mAudioTrack->start(NULL);
+	}
 	
 	return ret;
 }
@@ -439,15 +421,15 @@ Error_Type_e SigmaMediaPlayerImpl::stop_l(){
 		printf("after vidoe ExitAndWait\n");
 	}
 #if HALSYS
-	if(mHandle != (sigma_handle_t)(-1) && (mFlags|PLAYING)){
-		ret = HalSys_Media_Stop(mHandle);	
+	if(mFlags|PLAYING){
+		ret = mClient->stop();	
 	}
 #endif
 	modifyFlags(PLAYING, CLEAR);
 
 #ifdef HALSYS
-	if(ret == SIGM_ErrorNone && (mFlags|PREPARED)) {
-		ret = HalSys_Media_Close(mHandle);
+	if( mFlags|PREPARED) {
+		ret = mClient->close();
 	}
 #endif
 
@@ -476,9 +458,7 @@ Error_Type_e SigmaMediaPlayerImpl::pause_l(bool at_eos) {
     modifyFlags(PAUSED, SET);
 
 #ifdef HALSYS
-	if(mHandle != (sigma_handle_t)-1) {
-		ret = HalSys_Media_Pause(mHandle);
-	}
+	ret = mClient->pause();
 #endif
 
     return ret;
@@ -502,19 +482,15 @@ Error_Type_e SigmaMediaPlayerImpl::resume_l() {
 	modifyFlags(PLAYING, CLEAR);
 	
 #ifdef HALSYS
-	if(mHandle != (sigma_handle_t)-1) {
-		ret = HalSys_Media_Resume(mHandle);
-	}
+	ret = mClient->resume();
 #endif
 
     return ret;
 }
 
-
 bool SigmaMediaPlayerImpl::isPlaying() const {
     return (mFlags & PLAYING) || (mFlags & CACHE_UNDERRUN);
 }
-
 
 Error_Type_e SigmaMediaPlayerImpl::seekTo(int64_t timeUs) {
 	
@@ -536,14 +512,12 @@ Error_Type_e SigmaMediaPlayerImpl::seekTo_l(int64_t timeUs) {
 }
 
 Error_Type_e SigmaMediaPlayerImpl::prepare() {
-  
     Mutex::Autolock autoLock(mLock);
     return prepare_l();
 }
 
 Error_Type_e SigmaMediaPlayerImpl::prepare_l() {
 	Error_Type_e ret = SIGM_ErrorNone;
-	Media_Config_t tMediaConfig;
 	
     if (mFlags & PREPARED) {
         return SIGM_ErrorNone;
@@ -556,25 +530,7 @@ Error_Type_e SigmaMediaPlayerImpl::prepare_l() {
 	modifyFlags(PREPARING, SET);
 
 #ifdef HALSYS
-	 
-    tMediaConfig.bLowLatency = trid_false;
-    tMediaConfig.eClockMode = CLOCK_MODE_TIMER;
-
-    tMediaConfig.tAudioConfig.eAudioFormat = mAudioFormat;
-    tMediaConfig.tAudioConfig.eSoundSink = (mAudioFormat == SIGM_AUDIO_CodingUnused)?0:(SIGM_SOUND_SINK_HEADPHONE | SIGM_SOUND_SINK_SPDIF_PCM | SIGM_SOUND_SINK_SPEAKER);
-
-    tMediaConfig.tVideoConfig.eVideoDisplayMode = SIGM_SEAMLESS_NONE;
-    tMediaConfig.tVideoConfig.eVideoFormat = mVideoFormat ;
-    tMediaConfig.tVideoConfig.eVideoPlayMode = SIGM_PLAYMODE_NORMAL;
-    tMediaConfig.tVideoConfig.eVideoStreamMode = SIGM_STREAMMODE_NORMAL;
-    tMediaConfig.tVideoConfig.eVideoSink = (Video_Sink_e)((mVideoFormat== SIGM_VIDEO_CodingUnused)?0:SIGM_VIDEO_SINK_MP);
-	tMediaConfig.tVideoConfig.eMuxType = SIGM_MUX_ES;
-	ret = HalSys_Media_Open(&tMediaConfig, &mHandle);
-
-	for (size_t i = 0; i < mExtractor->countTracks(); ++i) {
-		sp<MetaData> meta = mExtractor->getTrackMetaData(i);
-		meta->setInt32(kKeyPlatformPrivate, (int32_t)mHandle);
-	}
+    ret = mClient->open(mVideoFormat,mAudioFormat);
 #endif
 
    if(ret == SIGM_ErrorNone) {
