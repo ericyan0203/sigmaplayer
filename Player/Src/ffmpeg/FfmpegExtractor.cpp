@@ -109,7 +109,8 @@ FfmpegSource::FfmpegSource(
 		mType(OTHER),
 		isVideo(true),
 		mBuffer(NULL),
-		bEOS(false){
+		bEOS(false),
+		mStatus(INVALID){
 				const char *mime;
 				mExtractor->mTracks.itemAt(trackindex).mMeta->findCString(kKeyMIMEType, &mime);
 				if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)) {
@@ -188,7 +189,7 @@ Error_Type_e FfmpegSource::read(
 		//set the current track as active
 		mExtractor->setTrackActive(mTrackIndex,true);
 
-		if (options && options->getSeekTo(&seekTimeUs, &mode)) {
+		if (mOptions.getSeekTo(&seekTimeUs, &mode)) {
 	        printf("ffmpeg seek requested for track %d mode %d\n",mTrackIndex,mode);
 			//we need to send demux ref track index
 			*out = mExtractor->getNextEncFrame(mDemuxRefTrackIndex,seekTimeUs,mode);
@@ -216,7 +217,6 @@ Error_Type_e FfmpegSource::read(
 
 bool FfmpegSource::threadLoop()
 {
-	MediaSource::ReadOptions options;
 	Error_Type_e err =  SIGM_ErrorNone;
 	int64_t timeUs;
 #ifdef HALSYS
@@ -225,19 +225,35 @@ bool FfmpegSource::threadLoop()
 	int32_t size = 0;
 	uint32_t flags = 0;
 
+	{
+		Mutex::Autolock autoLock(mLock);
+
+		if(mStatus == PAUSE_PENDING) {
+			mStatus = PAUSED;
+
+			mCondition.broadcast();
+			return true;
+		}else if(mStatus == PAUSED)
+		{
+			Sleep(1);
+			return true;
+		}
+			
+	}
+
 	if( mBuffer == NULL && bEOS) {
 		return false;
 	} else if(mBuffer == NULL){
-		err = read(&mBuffer, &options);
+		err = read(&mBuffer, NULL);
 	}
 	
-	options.clearSeekTo();
+	mOptions.clearSeekTo();
 	
 	size = mBuffer->size();
 		
     mBuffer->meta_data()->findInt64(kKeyTime, &timeUs);
 
-	utils_log(AV_DUMP_ERROR,"%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
+	//utils_log(AV_DUMP_ERROR,"%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
 #ifdef DEBUGFILE
 	if(isVideo) {
 		fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
@@ -300,6 +316,40 @@ int FfmpegSource::requestExitAndWait() {
 void FfmpegSource::setListener(const wp<HalSysClient> &listener) {
 	mListener = listener;
 }
+
+Error_Type_e FfmpegSource::pause() {
+	Mutex::Autolock autoLock(mLock);
+
+	mStatus = PAUSE_PENDING;
+
+	while(mStatus != PAUSED)
+		mCondition.wait(mLock);	
+
+	return SIGM_ErrorNone;
+	
+}
+
+Error_Type_e FfmpegSource::resume() {
+	Mutex::Autolock autoLock(mLock);
+	
+	mStatus = RESUMED;
+
+	return SIGM_ErrorNone;
+}
+
+Error_Type_e FfmpegSource::seekTo(uint64_t timeMS) {
+	if(mBuffer != NULL) {
+		mBuffer->release();
+    	mBuffer = NULL;
+	}
+
+	mOptions.setSeekTo(
+             timeMS*1000,
+ 			 MediaSource::ReadOptions::SEEK_CLOSEST_SYNC);
+
+	return SIGM_ErrorNone;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 FfmpegExtractor::FfmpegExtractor(const sp<DataSource> &source)
@@ -958,6 +1008,7 @@ int64_t FfmpegExtractor::computeTrackDuration(int track){
 
 }
 
+
 int FfmpegExtractor::addTracks() {
 		printf("%s %d\n",__FUNCTION__,__LINE__);
 
@@ -1421,7 +1472,7 @@ int FfmpegExtractor::addTracks() {
 				}
 				else {
 						//For now ignore subtitle and other tracks
-						printf("Track %d ignored\n",uCount);
+						//printf("Track %d ignored\n",uCount);
 						continue;
 				}
 
@@ -1524,11 +1575,13 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 								break;
 
 				}
+				
 				if(trackIndex >=0){
 						/*seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q,
 						  pFormatCtx->streams[trackIndex]->time_base); */
 						//For wmv, vc1
 						seek_target = (seekTime/(double)1000000) *(double) pFormatCtx->streams[trackIndex]->time_base.den/(double)pFormatCtx->streams[trackIndex]->time_base.num;
+						//seek_target = seekTime;
 				}
 
 				int seek_ret = 0;
@@ -1541,44 +1594,40 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 				}
 				else{ //ffmpeg seek is successful flush prefetched pkts
 						printf("seek successful\n");
-						while(encVideoFrameList.size() > 0){
-								TrackEncFrame * out = *encVideoFrameList.begin();
-								encVideoFrameList.erase(encVideoFrameList.begin());
-								if(NULL!=out && NULL!=out->encFrame){
+						if(trackIndex == mCurrentVideoTrack) {
+							printf("flush video buffer\n");
+							while(encVideoFrameList.size() > 0){
+									TrackEncFrame * out = *encVideoFrameList.begin();
+									encVideoFrameList.erase(encVideoFrameList.begin());
+									if(NULL!=out && NULL!=out->encFrame){
 
-										mVListSize-=out->encFrame->size();
-										//ALOGE("vlist size at pop (%d)\n", mVListSize);
+											mVListSize-=out->encFrame->size();
+											out->encFrame->release();
+									}
+									if(out){
+										delete out;
+									}
 
-										out->encFrame->release();
-								}
-								if(out)
-								{
-									delete out;
-								}
-
-						}
-						while(encAudioFrameList.size() > 0){
-							    printf("audio frame size %x\n",encAudioFrameList.size());
+							}
+						}else if(trackIndex == mCurrentAudioTrack) {
+							printf("flush audio buffer\n");
+							while(encAudioFrameList.size() > 0){
 								TrackEncFrame * out = *encAudioFrameList.begin();
 								encAudioFrameList.erase(encAudioFrameList.begin());
 								if(NULL!=out && NULL!=out->encFrame){
-
 										mAListSize-=out->encFrame->size();
-										//ALOGE("alist size at pop (%d)\n", mAListSize);
-
 										out->encFrame->release();
 								}
-								if(out)
-								{
+								if(out){
 									delete out;
 								}
 
+							}
 						}
 
 				}
 
 		}
-	//	ALOGW(" TRACK Index :: %d  %d\n",(int) trackIndex , (int) mCurrentVideoTrack);
 
 		//try to get the frames from prefetched lists
 		if(trackIndex == mCurrentVideoTrack){
@@ -1667,7 +1716,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 						if(mCurrentVideoTrack != encFrame.stream_index && mCurrentAudioTrack != encFrame.stream_index)
 						{
-						    printf("ignore the id %x \n",encFrame.stream_index);
+						 //   printf("ignore the id %x \n",encFrame.stream_index);
 						    av_free_packet(&encFrame);
 							continue;
 						}
@@ -1677,8 +1726,10 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 				//Add the frame to track encoded frame list	
 				MediaBuffer *buffer = new MediaBuffer(encFrame.size+8192); //add 8192 bytes 
 
+#if 0
 				if(mCurrentVideoTrack == encFrame.stream_index) printf("videotrack pts %lld size %d\n",encFrame.pts,encFrame.size);
 				else if(mCurrentAudioTrack == encFrame.stream_index) printf("audiotrack %lld size %d\n",encFrame.pts,encFrame.size);
+#endif
 				//try for pts
 				if((encFrame.pts != 0x8000000000000000LL) && (encFrame.flags & AV_PKT_FLAG_KEY)){
 						int64_t pts;
@@ -2200,7 +2251,7 @@ bool SniffFfmpeg(
 						{
 								/* Couldn't find stream information */
 								printf("av_find_stream_info failed %d %s ret %x",__LINE__,__FUNCTION__,ret);
-								return -1;
+								return false;
 						}
 						/* Add tracks */
 						for(  unsigned int uCount=0; uCount<pFormatCtx->nb_streams; uCount++)

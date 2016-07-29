@@ -502,12 +502,31 @@ Error_Type_e SigmaMediaPlayerImpl::seekTo(int64_t timeUs) {
     return SIGM_ErrorNone;
 }
 
-Error_Type_e SigmaMediaPlayerImpl::seekTo_l(int64_t timeUs) {
+Error_Type_e SigmaMediaPlayerImpl::seekTo_l(int64_t timeMs) {
     mSeeking = SEEK;
     mSeekNotificationSent = false;
-    mSeekTimeUs = timeUs;
+    mSeekTimeUs = timeMs;
     modifyFlags((AT_EOS | AUDIO_AT_EOS | VIDEO_AT_EOS), CLEAR);
 
+	printf("SeekTo %d ms\n",timeMs);
+	
+	if(haveVideo) {
+		mVideoTrack->pause();
+		mVideoTrack->seekTo(timeMs);
+	}
+
+	if(haveAudio) {
+		mAudioTrack->pause();
+		mAudioTrack->seekTo(timeMs);
+	}
+
+#ifdef HALSYS
+	mClient->flush();
+#endif
+
+	if(haveVideo) mVideoTrack->resume();
+	if(haveAudio) mAudioTrack->resume();
+	
     return SIGM_ErrorNone;
 }
 

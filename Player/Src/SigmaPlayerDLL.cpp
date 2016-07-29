@@ -78,6 +78,13 @@ int  ResumePlayer(void * phandle) {
 
 
 int FlushPlayer(void * phandle,unsigned long long ms) {
+	if(phandle == player.get()) {
+	 	player->seekTo(ms);
+	}else {
+		printf("handle pointer isn't correct\n");
+		return -1;
+	}
+
 	 return 0;
 }
 

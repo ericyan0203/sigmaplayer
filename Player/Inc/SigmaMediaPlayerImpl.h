@@ -145,7 +145,7 @@ private:
 
 
     void reset_l();
-    Error_Type_e seekTo_l(int64_t timeUs);
+    Error_Type_e seekTo_l(int64_t timeMs);
     Error_Type_e pause_l(bool at_eos = false);
 	Error_Type_e resume_l();
 

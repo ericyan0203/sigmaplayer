@@ -1,7 +1,7 @@
 #include "HalSysClient.h"
 #include "SIGM_API.h"
 #include "SIGM_Media_API.h"
-
+#include <stdio.h>
 static bool bGlbInit = false;  //we should use singleton here
 static uint32_t bRef = 0;
 
@@ -142,6 +142,18 @@ Error_Type_e HalSysClient::resume() {
 	}
 	return ret;
 }
+
+Error_Type_e HalSysClient::flush() {
+	Error_Type_e ret = SIGM_ErrorFailed;
+	Mutex::Autolock autoLock(mLock);
+
+	if( (sigma_handle_t)-1 != mHandle) {
+		ret = HalSys_Media_Flush(mHandle,SIGM_FLUSHMODE_BOTH);
+	}
+	printf("flush ret %x\n",ret);
+	return ret;
+}
+
 
 Error_Type_e HalSysClient::handleBuffer(Media_Buffer_t *buffer){	
 	Error_Type_e ret = SIGM_ErrorFailed;

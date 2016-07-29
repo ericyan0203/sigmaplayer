@@ -80,6 +80,14 @@ struct MediaSource : public virtual RefBase ,public virtual Thread {
         return SIGM_ErrorNotSupported;
     }
 
+	virtual Error_Type_e resume() {
+        return SIGM_ErrorNotSupported;
+    }
+
+	virtual Error_Type_e  seekTo(uint64_t timeMS) {
+        return SIGM_ErrorNotSupported;
+    }
+
     // The consumer of this media source requests that the given buffers
     // are to be returned exclusively in response to read calls.
     // This will be called after a successful start() and before the

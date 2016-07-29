@@ -48,7 +48,7 @@ public:
     }
     virtual void setUID(uid_t uid) {
     }
-
+	
 protected:
     MediaExtractor() : mIsDrm(false) {}
     virtual ~MediaExtractor() {}

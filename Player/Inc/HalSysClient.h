@@ -28,6 +28,7 @@ public:
 	Error_Type_e stop();
 	Error_Type_e pause();
 	Error_Type_e resume();
+	Error_Type_e flush();
 
 	Error_Type_e handleBuffer(Media_Buffer_t *buffer);
 	

@@ -52,8 +52,8 @@ bool SigmaMediaPlayer::isPlaying() {
     return mPlayer->isPlaying();
 }
 
-Error_Type_e SigmaMediaPlayer::seekTo(int msec) {
-    Error_Type_e err = mPlayer->seekTo((int64_t)msec * 1000);
+Error_Type_e SigmaMediaPlayer::seekTo(uint64_t timeMS) {
+    Error_Type_e err = mPlayer->seekTo((int64_t)timeMS);
     return err;
 }
 

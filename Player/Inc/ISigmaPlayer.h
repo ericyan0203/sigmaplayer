@@ -19,7 +19,7 @@ public:
     virtual Error_Type_e        pause() = 0;
 	virtual Error_Type_e        resume() = 0;
 	virtual bool        isPlaying() = 0;
-    virtual Error_Type_e        seekTo(int msec) = 0;
+    virtual Error_Type_e        seekTo(uint64_t msec) = 0;
 	
 	virtual Error_Type_e        reset() = 0;
 

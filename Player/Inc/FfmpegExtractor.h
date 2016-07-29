@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <Threads.h>
+#include <Condition.h>
 
 #include "SIGM_Types.h"
 
@@ -54,6 +55,7 @@ struct FfmpegExtractor : public MediaExtractor {
 		virtual void setTrackActive(int trackIndex, bool enable);
 
 		virtual MediaBuffer * getNextEncFrame(int trackIndex,int64_t seekTime, int seekMode);
+		
 		static bool mIsAvRegistered;
 
 		protected:
@@ -137,7 +139,9 @@ struct FfmpegExtractor : public MediaExtractor {
 
 			static Vector<avcontext> mContexts;
 
+
 };
+
 
 struct FfmpegSource : public MediaSource {
 		FfmpegSource(
@@ -156,6 +160,12 @@ struct FfmpegSource : public MediaSource {
 		virtual int  requestExitAndWait();
 	
 		void setListener(const wp<HalSysClient> &listener);
+
+		virtual Error_Type_e pause();
+
+		virtual Error_Type_e resume();
+
+		virtual Error_Type_e seekTo(uint64_t timeMS);
 
 		private:
 		enum Type {
@@ -177,6 +187,15 @@ struct FfmpegSource : public MediaSource {
 				OTHER
 		};
 
+		enum Status{
+			NONE,
+			PAUSE_PENDING,
+			PAUSED,
+			RESUME_PENDING,
+			RESUMED,
+			INVALID
+		};
+
 		sp<FfmpegExtractor> mExtractor;
 		size_t mTrackIndex;
 		size_t mDemuxRefTrackIndex;
@@ -190,6 +209,10 @@ struct FfmpegSource : public MediaSource {
 #ifdef DEBUGFILE
 		FILE * mFile;
 #endif
+		mutable Mutex mLock;
+		Status  mStatus;
+		Condition mCondition;
+		MediaSource::ReadOptions mOptions;
 		//virtual ~FfmpegSource(){};
 		FfmpegSource(const FfmpegSource &);
 		FfmpegSource &operator=(const FfmpegSource &);
