@@ -14,8 +14,22 @@ typedef struct{
 	unsigned char * ret;  //filled by  socket
 }packet;
 
+#pragma pack(push)  
+#pragma pack(1)
+typedef struct CALLBACK_PARAM {
+	unsigned int type;
+	unsigned int inst;
+	unsigned int size;
+}cb_param;
+#pragma pack(pop)
+
+
+typedef void (*Listener)(int inst,int event,int data_sz ,void * data_cb);
+
+
 int socket_connect(const char *host_name, int port, int dtimeout);
 int socket_send(packet * pack);
+void socket_setListener(Listener func);
 void socket_disconnect(void);
 
 #ifdef __cplusplus

@@ -188,11 +188,12 @@ struct FfmpegSource : public MediaSource {
 		};
 
 		enum Status{
-			NONE,
-			PAUSE_PENDING,
-			PAUSED,
-			RESUME_PENDING,
-			RESUMED,
+			NONE              = 0,
+			PAUSE_PENDING     = 1,
+			PAUSED            = 2,    
+			RESUME_PENDING    = 4,
+			RESUMED           = 8,
+			EOS               = 16,
 			INVALID
 		};
 
@@ -210,7 +211,7 @@ struct FfmpegSource : public MediaSource {
 		FILE * mFile;
 #endif
 		mutable Mutex mLock;
-		Status  mStatus;
+		uint32_t  mStatus;
 		Condition mCondition;
 		MediaSource::ReadOptions mOptions;
 		//virtual ~FfmpegSource(){};

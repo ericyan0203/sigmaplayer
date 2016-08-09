@@ -4,19 +4,6 @@
 #include "ISigmaPlayer.h"
 #include "SigmaMediaPlayerImpl.h"
 
-enum media_event_type {
-    MEDIA_NOP               = 0, // interface test message
-    MEDIA_PLAYBACK_COMPLETE = 1,
-    MEDIA_BUFFERING_UPDATE  = 2,
-    MEDIA_SEEK_COMPLETE     = 4,
-    MEDIA_STARTED           = 6,
-    MEDIA_PAUSED            = 7,
-    MEDIA_STOPPED           = 8,
-    MEDIA_ERROR             = 100,
-    MEDIA_INFO              = 200,
-    MEDIA_SUBTITLE_DATA     = 201
-};
-
 struct SigmaMediaPlayer : public ISigmaPlayer {
     SigmaMediaPlayer();
 	virtual ~SigmaMediaPlayer();

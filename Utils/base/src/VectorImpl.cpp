@@ -22,12 +22,14 @@
 #include <SharedBuffer.h>
 #include <VectorImpl.h>
 #include <Threads.h>
+#include <stdint.h>
+#include  <stddef.h> 
 // ----------------------------------------------------------------------------
 
 const size_t kMinVectorCapacity = 4;
 
-static inline size_t max(size_t a, size_t b) {
-    return a>b ? a : b;
+static inline size_t sf_max(size_t a, size_t b) {
+	return  a>b?a:b;
 }
 
 // ----------------------------------------------------------------------------
@@ -379,7 +381,7 @@ void* VectorImpl::_grow(size_t where, size_t amount)
 		
         new_capacity = new_capacity + static_cast<size_t>(1u);
 		
-        new_capacity = max(kMinVectorCapacity, new_capacity);
+        new_capacity = sf_max(kMinVectorCapacity, new_capacity);
 
         size_t new_alloc_size = 0;
         new_alloc_size = new_capacity *mItemSize;
@@ -446,7 +448,7 @@ void VectorImpl::_shrink(size_t where, size_t amount)
     if (new_size < (capacity() / 2)) {
         // NOTE: (new_size * 2) is safe because capacity didn't overflow and
         // new_size < (capacity / 2)).
-        const size_t new_capacity = max(kMinVectorCapacity, new_size * 2);
+        const size_t new_capacity = sf_max(kMinVectorCapacity, new_size * 2);
 
         // NOTE: (new_capacity * mItemSize), (where * mItemSize) and
         // ((where + amount) * mItemSize) beyond this point are safe because

@@ -20,7 +20,9 @@
 #include <sys/types.h>
 #include <time.h>
 #include <pthread.h>
-
+#include <string.h>
+#include <Log.h>
+#include <stdint.h>
 class Condition;
 
 /*
@@ -36,9 +38,10 @@ public:
         SHARED = 1
     };
 
-                Mutex();
-                Mutex(int type);
-                ~Mutex();
+	Mutex();
+	Mutex(const char* name);
+	Mutex(int type ,  const char * name);
+	~Mutex();
 
     // lock or unlock the mutex
     int    lock();
@@ -66,6 +69,8 @@ private:
     Mutex&      operator = (const Mutex&);
 
     pthread_mutex_t mMutex;
+
+	char mName[256];
 };
 
 // ---------------------------------------------------------------------------
@@ -74,7 +79,12 @@ inline Mutex::Mutex() {
     pthread_mutex_init(&mMutex, NULL);
 }
 
-inline Mutex::Mutex(int type) {
+inline Mutex::Mutex( const char* name) {
+    pthread_mutex_init(&mMutex, NULL);
+	strncpy(mName, name , strlen(name));
+}
+
+inline Mutex::Mutex(int type, const char * name ) {
     if (type == SHARED) {
         pthread_mutexattr_t attr;
         pthread_mutexattr_init(&attr);
@@ -84,18 +94,23 @@ inline Mutex::Mutex(int type) {
     } else {
         pthread_mutex_init(&mMutex, NULL);
     }
+
+	strncpy(mName, name , strlen(name));
 }
 
 inline Mutex::~Mutex() {
     pthread_mutex_destroy(&mMutex);
 }
 inline int Mutex::lock() {
+	//utils_log(AV_DUMP_ERROR,"mutex %llx lock\n",(uint64_t)(&mMutex));
     return -pthread_mutex_lock(&mMutex);
 }
 inline void Mutex::unlock() {
+	//utils_log(AV_DUMP_ERROR,"mutex %llx unlock\n",(uint64_t)(&mMutex));
     pthread_mutex_unlock(&mMutex);
 }
 inline int Mutex::tryLock() {
+	//utils_log(AV_DUMP_ERROR,"mutex %llx trylock\n",(uint64_t)(&mMutex));
     return -pthread_mutex_trylock(&mMutex);
 }
 

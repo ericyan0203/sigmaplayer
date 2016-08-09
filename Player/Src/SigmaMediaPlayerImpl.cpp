@@ -173,8 +173,8 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
     mExtractor = extractor;
     for (size_t i = 0; i < extractor->countTracks(); ++i) {
         sp<MetaData> meta = extractor->getTrackMetaData(i);
-
         int32_t bitrate;
+		
         if (!meta->findInt32(kKeyBitRate, &bitrate)) {
             const char *mime;
             meta->findCString(kKeyMIMEType, &mime);
@@ -186,6 +186,19 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
 
         totalBitRate += bitrate;
     }
+
+	for (size_t i = 0; i < extractor->countTracks(); ++i) {
+        sp<MetaData> meta = extractor->getTrackMetaData(i);
+        int64_t duration;
+		
+        if (meta->findInt64(kKeyDuration, &duration)) {
+        	if(duration>mDurationUs) {
+		  		mDurationUs = duration;
+          	}
+        }
+    }
+
+#if 0
     sp<MetaData> fileMeta = mExtractor->getMetaData();
     if (fileMeta != NULL) {
         int64_t duration;
@@ -193,6 +206,9 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
             mDurationUs = duration;
         }
     }
+#endif
+
+	utils_log(AV_DUMP_ERROR,"duration %d ms\n",(mDurationUs/1000));
 
     mBitrate = totalBitRate;
 
@@ -479,7 +495,7 @@ Error_Type_e SigmaMediaPlayerImpl::resume_l() {
 
     modifyFlags(PAUSED, CLEAR);
 	
-	modifyFlags(PLAYING, CLEAR);
+	modifyFlags(PLAYING, SET);
 	
 #ifdef HALSYS
 	ret = mClient->resume();
@@ -508,7 +524,7 @@ Error_Type_e SigmaMediaPlayerImpl::seekTo_l(int64_t timeMs) {
     mSeekTimeUs = timeMs;
     modifyFlags((AT_EOS | AUDIO_AT_EOS | VIDEO_AT_EOS), CLEAR);
 
-	printf("SeekTo %d ms\n",timeMs);
+	utils_log(AV_DUMP_ERROR,"seekTo %d ms\n",timeMs);
 	
 	if(haveVideo) {
 		mVideoTrack->pause();
@@ -570,6 +586,15 @@ Error_Type_e SigmaMediaPlayerImpl::setParameter(int key, const void *request) {
 }
 
 Error_Type_e SigmaMediaPlayerImpl::getParameter(int key, void *reply) {
+	switch(key)
+	{
+		case MEDIA_DURATION:
+			*(uint64_t *)reply = mDurationUs/1000;
+			utils_log(AV_DUMP_ERROR,"duration %lld\n",mDurationUs);
+			break;
+		default:
+			break;
+	}
     return SIGM_ErrorNone;
 }
 

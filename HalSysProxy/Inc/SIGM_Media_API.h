@@ -32,9 +32,9 @@ Error_Type_e HalSys_Media_Flush(sigma_handle_t ptInst, FlushMode_e eMode);
 
 Error_Type_e HalSys_Media_PushFrame(sigma_handle_t ptInst, Media_Buffer_t* pMediaBuffer);
 
-//Error_Type_e HalSys_Media_InstallCallback(CallBackFuncsInfo_t* const pCbInfo, sigm_callback_t pInfoRoutine, void* pUserParam);
+Error_Type_e HalSys_Media_InstallCallback(CallBackFuncsInfo_t* const pCbInfo, sigm_callback_t pInfoRoutine, void* pUserParam);
 
-//Error_Type_e HalSys_Media_UnInstallCallback(CallBackFuncsInfo_t* ptCallbackInfo);
+Error_Type_e HalSys_Media_UnInstallCallback(CallBackFuncsInfo_t* pCbInfo);
 
 #ifdef __cplusplus
 }

@@ -144,7 +144,30 @@ Error_Type_e HalSys_Media_PushFrame(sigma_handle_t ptInst, Media_Buffer_t* pMedi
 	return (Error_Type_e)(ret.common_ret.ret);
 }
 
-//Error_Type_e HalSys_Media_InstallCallback(CallBackFuncsInfo_t* const pCbInfo, sigm_callback_t pInfoRoutine, void* pUserParam);
+Error_Type_e HalSys_Media_InstallCallback(CallBackFuncsInfo_t* const pCbInfo, sigm_callback_t pInfoRoutine, void* pUserParam) {
+	halsys_ret ret;
+	halsys_cb_param * param = (halsys_cb_param *)send_buf[0];
 
-//Error_Type_e HalSys_Media_UnInstallCallback(CallBackFuncsInfo_t* ptCallbackInfo);
+	param->instance = pCbInfo->ptInst;
+	param->reason = pCbInfo->InfoID;
+
+	ret = halsys_media_installcb(param);
+
+	pCbInfo->sub_id = ret.cb_ret.subid;
+
+	return (Error_Type_e)(ret.cb_ret.ret);
+}
+
+Error_Type_e HalSys_Media_UnInstallCallback(CallBackFuncsInfo_t* pCbInfo) {
+	halsys_ret ret;
+	halsys_cb_param * param = (halsys_cb_param *)send_buf[0];
+
+	param->instance = pCbInfo->ptInst;
+	param->reason = pCbInfo->InfoID;
+	param->subid = pCbInfo->sub_id;
+
+	ret = halsys_media_uninstallcb(param);
+
+	return (Error_Type_e)(ret.cb_ret.ret);
+}
 

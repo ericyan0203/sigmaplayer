@@ -48,6 +48,8 @@
 #define INITIAL_STRONG_VALUE (1<<28)
 
 // ---------------------------------------------------------------------------
+
+#ifndef WIN32
 static int32_t atomic_cmpxchg(int32_t oldvalue, int32_t newvalue,  volatile int32_t* addr)
 {
 	if(*addr == oldvalue)
@@ -56,10 +58,26 @@ static int32_t atomic_cmpxchg(int32_t oldvalue, int32_t newvalue,  volatile int3
 		return 0;
 	}
 	else
-	{
+	{	
 		return 1;
 	}
 }
+#else
+static int32_t atomic_cmpxchg(int32_t oldvalue, int32_t newvalue,  volatile int32_t* addr)
+{
+	const int32_t c = InterlockedCompareExchange((volatile LONG *)addr,newvalue,oldvalue);
+
+	if(c == oldvalue)
+	{
+		return 0;
+	}
+	else
+	{	
+		return 1;
+	}
+}
+
+#endif
 
 class RefBase::weakref_impl : public RefBase::weakref_type
 {
@@ -96,6 +114,7 @@ void RefBase::incStrong(const void* id) const
     refs->incWeak(id);
     
     refs->addStrongRef(id);
+#ifndef WIN32	
     const int32_t c = refs->mStrong;
 	refs->mStrong++;
     //ALOG_ASSERT(c > 0, "incStrong() called on %p after last strong ref", refs);
@@ -103,7 +122,13 @@ void RefBase::incStrong(const void* id) const
     if (c != INITIAL_STRONG_VALUE)  {
         return;
     }
+#else
+	const int32_t c = InterlockedIncrement((volatile LONG *)&refs->mStrong);
 
+	if(c != (INITIAL_STRONG_VALUE+1)) {
+		return;
+	}
+#endif
 	refs->mStrong -= INITIAL_STRONG_VALUE;
 
 	refs->mBase->onFirstRef();
@@ -113,6 +138,8 @@ void RefBase::decStrong(const void* id) const
 {
     weakref_impl* const refs = mRefs;
     refs->removeStrongRef(id);
+
+#ifndef WIN32	
     const int32_t c = refs->mStrong;
 	refs->mStrong--;
 
@@ -122,6 +149,15 @@ void RefBase::decStrong(const void* id) const
             delete this;
         }
     }
+#else
+	const int32_t c = InterlockedDecrement((volatile LONG *)&refs->mStrong);
+	if (c == 0) {
+        refs->mBase->onLastStrongRef(id);
+        if ((refs->mFlags&OBJECT_LIFETIME_MASK) == OBJECT_LIFETIME_STRONG) {
+            delete this;
+        }
+    }
+#endif
     refs->decWeak(id);
 }
 
@@ -131,11 +167,18 @@ void RefBase::forceIncStrong(const void* id) const
     refs->incWeak(id);
     
     refs->addStrongRef(id);
+#ifndef WIN32
     const int32_t c = refs->mStrong;
 	refs->mStrong++;
-
+#else
+	const int32_t c = InterlockedIncrement((volatile LONG *)&refs->mStrong);
+#endif
     switch (c) {
+#ifndef WIN32
     case INITIAL_STRONG_VALUE:
+#else
+	case INITIAL_STRONG_VALUE + 1:
+#endif
 		refs->mStrong -= INITIAL_STRONG_VALUE;
         // fall through...
     case 0:
@@ -157,8 +200,12 @@ void RefBase::weakref_type::incWeak(const void* id)
 {
     weakref_impl* const impl = static_cast<weakref_impl*>(this);
     impl->addWeakRef(id);
+#ifndef WIN32
     const int32_t c  =  impl->mWeak;
 	impl->mWeak++;
+#else
+	 const int32_t c = InterlockedIncrement((volatile LONG *)&impl->mWeak);
+#endif
    // ALOG_ASSERT(c >= 0, "incWeak called on %p after last weak ref", this);
 }
 
@@ -167,11 +214,15 @@ void RefBase::weakref_type::decWeak(const void* id)
 {
     weakref_impl* const impl = static_cast<weakref_impl*>(this);
     impl->removeWeakRef(id);
+#ifndef WIN32	
     const int32_t c = impl->mWeak;
 	impl->mWeak--;
     
     if (c != 1) return;
-
+#else
+	 const int32_t c = InterlockedDecrement((volatile LONG *)&impl->mWeak);
+	 if(c != 0) return;
+#endif
     if ((impl->mFlags&OBJECT_LIFETIME_WEAK) == OBJECT_LIFETIME_STRONG) {
         // This is the regular lifetime case. The object is destroyed
         // when the last strong reference goes away. Since weakref_impl
@@ -258,8 +309,14 @@ bool RefBase::weakref_type::attemptIncStrong(const void* id)
             }
             // grab a strong-reference, which is always safe due to the
             // extended life-time.
+#ifndef WIN32
             curCount = impl->mStrong;
-			impl->mStrong++;        }
+			impl->mStrong++;
+#else
+			curCount =  impl->mStrong;
+			InterlockedIncrement((volatile LONG *)&impl->mStrong);
+#endif
+		}
 
         // If the strong reference count has already been incremented by
         // someone else, the implementor of onIncStrongAttempted() is holding
@@ -366,7 +423,11 @@ RefBase::~RefBase()
 void RefBase::extendObjectLifetime(int32_t mode)
 {
     //android_atomic_or(mode, &mRefs->mFlags);
+#ifndef WIN32
     mRefs->mFlags |= mode;
+#else
+	InterlockedOr((volatile LONG *)&mRefs->mFlags,mode);
+#endif
 }
 
 void RefBase::onFirstRef()

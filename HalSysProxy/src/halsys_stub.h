@@ -56,6 +56,19 @@ typedef struct HALSYS_INIT_PARAMETER {
 } halsys_init_param;
 #pragma pack(pop)
 
+/** struct HALSYS_CALLBACK_PARAMETER
+ *  halsys install callback parameter
+ */
+#pragma pack(push)  
+#pragma pack(1)
+typedef struct HALSYS_CALLBACK_PARAMETER {
+	unsigned int instance;
+	unsigned int reason;
+	unsigned int subid;
+}halsys_cb_param;
+#pragma pack(pop)
+
+
 /** struct MEDIA_OPEN_PARAMETER
  *  media open command parameter
  *  10B
@@ -87,6 +100,19 @@ typedef struct HALSYS_OPEN_RETURN {
     unsigned int instance;
 } halsys_open_ret;
 #pragma pack(pop)
+
+/** struct HALSYS_OPEN_RETURN
+ *   media open command return value
+ *   '2I'
+ */
+#pragma pack(push)  
+#pragma pack(1)
+typedef struct HALSYS_CALLBACK_RETURN {
+    unsigned int ret;
+    unsigned int subid;
+} halsys_cb_ret;
+#pragma pack(pop)
+
 
 /** struct MEDIA_FLUSH_PARAMETER
  *  media flush command parameter
@@ -148,8 +174,9 @@ typedef struct HDMI_START_PARAMETER {
 typedef struct HALSYS_RETURN {
     unsigned int size;
     union {
-        halsys_common_ret common_ret;
-        halsys_open_ret open_ret;
+		halsys_common_ret common_ret;
+		halsys_open_ret open_ret;
+		halsys_cb_ret  	cb_ret;	
     };
 } halsys_ret;
 #pragma pack(pop)
@@ -197,6 +224,10 @@ halsys_ret halsys_media_resume(halsys_common_param* arg);
 halsys_ret halsys_media_flush(media_flush_param* arg);
 
 halsys_ret halsys_media_pushframe(media_push_param* arg);
+
+halsys_ret halsys_media_installcb(halsys_cb_param * arg);
+
+halsys_ret halsys_media_uninstallcb(halsys_cb_param * arg);
 
 halsys_ret halsys_hdmi_initialize(void);
 

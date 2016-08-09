@@ -18,7 +18,7 @@ int mPort = 52116;
 char mIP[256]= {0};
 
 int InitPlatform(const char * ip, const int port){
-	utils_init();
+	utils_init("./sigma.log");
 	strncpy(mIP,ip,10);
 	mPort = port;
 
@@ -90,5 +90,13 @@ int FlushPlayer(void * phandle,unsigned long long ms) {
 
 int GetPlayerDuration(void * phandle,unsigned long long * duration) {
 	 *duration = 0;
+	if(phandle == player.get()) {
+	 	player->getParameter(MEDIA_DURATION,(void *)duration);
+		utils_log(AV_DUMP_ERROR,"Duration %lld\n",*duration);
+	}else {
+		printf("handle pointer isn't correct\n");
+		return -1;
+	}
+	 
 	 return 0;
 }

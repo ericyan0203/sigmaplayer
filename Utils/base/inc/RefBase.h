@@ -25,6 +25,10 @@
 #include <StrongPointer.h>
 #include <TypeHelpers.h>
 
+#ifdef WIN32 
+#include <winsock2.h>
+#include <windows.h>
+#endif
 // ---------------------------------------------------------------------------
 
 #define COMPARE_WEAK(_op_)                                      \
@@ -168,13 +172,22 @@ class LightRefBase
 public:
     inline LightRefBase() : mCount(0) { }
     inline void incStrong(const void* id) const {
-        mCount++;
+#ifdef WIN32		
+        InterlockedIncrement(&mCount);
+#else 
+		mCount++;
+#endif
     }
     inline void decStrong(const void* id) const {
-        if (mCount == 1) {
+#ifdef WIN32
+        if (InterlockedDecrement(&mCount) == 0) {
             delete static_cast<const T*>(this);
         }
-		mCount--;
+#else
+		if( (mCount--) == 1)
+			delete static_cast<const T*>(this);		
+#endif
+
     }
     //! DEBUGGING ONLY: Get current strong ref count.
     inline int32_t getStrongCount() const {

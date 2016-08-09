@@ -10,6 +10,8 @@
 //include "pthread.h"
 #endif
 
+#define INT_DATABUFFER_SIZE (6*1024*1024)
+
 
 #ifdef	__linux
 
@@ -24,10 +26,15 @@
 typedef int SOCKET;  
 #define SOCKET_ERROR  (-1)
 #define INVALID_SOCKET  0  
+
 #define HANDLE pthread_mutex_t*  
 #endif
 
 static SOCKET _socket = INVALID_SOCKET;
+static SOCKET _socket_server =  INVALID_SOCKET;
+char databuff[INT_DATABUFFER_SIZE]; 
+
+Listener _Listener = NULL;
 
 static HANDLE Lock(char* name)
 {
@@ -44,6 +51,166 @@ static int Unlock(HANDLE mutex)
     return 1;
 }
 
+static int online_server(const char *host_name, int port, int dtimeout)
+{
+    WSADATA wsaData;
+	int iResult;
+	struct sockaddr_in addrServer;
+    int bReuseAddr = 1; 
+	unsigned int i = 0;  
+    SOCKET sockAccept;    
+    struct sockaddr_in addrAccept;    
+    int iAcceptLen = sizeof(addrAccept);       
+    int iRecvSize;    
+        
+    struct sockaddr_in addrTemp;    
+    int iTempLen;    
+    
+    fd_set fd; 
+
+	WSAStartup(0x0101,&wsaData);    
+
+	if(_socket_server != INVALID_SOCKET) {
+		printf("socket has already established\n");
+		return 0;
+	}
+	
+     _socket_server = socket(AF_INET,SOCK_STREAM,0);
+	 
+    if (INVALID_SOCKET == _socket_server)    
+    {    
+        printf("Failed to create socket!\n");    
+        WSACleanup();    
+        return -1;    
+    }    
+    
+    memset(&addrServer,0,sizeof(struct sockaddr_in));    
+    addrServer.sin_family = AF_INET;    
+    addrServer.sin_port = htons(port);    
+    addrServer.sin_addr.S_un.S_addr = htonl(INADDR_ANY);      
+      
+    iResult = setsockopt(_socket_server,SOL_SOCKET,SO_REUSEADDR,(char *)&bReuseAddr,sizeof(bReuseAddr));    
+
+	if(SOCKET_ERROR == iResult){    
+        printf("Failed to set resueaddr socket!\n");    
+        WSACleanup();    
+        return -1;    
+    }      
+    
+    iResult = bind(_socket_server,(struct sockaddr *)&addrServer,sizeof(addrServer));    
+    if (SOCKET_ERROR == iResult)    
+    {    
+        printf("Failed to bind address!\n");    
+        WSACleanup();    
+        return -1;    
+    }    
+    
+    if (0 != listen(_socket_server,5))    
+    {    
+        printf("Failed to listen client!\n");    
+        WSACleanup();    
+        return -1;    
+    }    
+       
+    FD_ZERO(&fd);    
+    FD_SET(_socket_server,&fd);    
+      
+    printf("Start server...\n");    
+    while(1)    
+    {    
+        fd_set fdOld = fd;    
+        iResult = select(0,&fdOld,NULL,NULL,/*&tm*/NULL);    
+        if (0 <= iResult)    
+        {    
+            for(i = 0;i < fd.fd_count; i++)    
+            {    
+                if (FD_ISSET(fd.fd_array[i],&fdOld))    
+                {    
+                    if (fd.fd_array[i] == _socket_server)    
+                    {    
+                        memset(&addrAccept,0,sizeof(addrTemp));    
+                        sockAccept = accept(_socket_server,(struct sockaddr *)&addrAccept,&iAcceptLen);    
+                        if (INVALID_SOCKET != sockAccept)    
+                        {    
+                            FD_SET(sockAccept,&fd);    
+                            //FD_SET(sockAccept,&fdOld);    
+                            printf("%s:%d has connected server!\n",inet_ntoa(addrAccept.sin_addr),    
+                                ntohs(addrAccept.sin_port));    
+                        }    
+                    }    
+                    else   
+                    {   
+                    	cb_param param;
+						
+                        memset(databuff,0,INT_DATABUFFER_SIZE);    
+                        iRecvSize = recv(fd.fd_array[i],(char *)&param,sizeof(cb_param),0);   
+						
+                        memset(&addrTemp,0,sizeof(addrTemp));    
+                        iTempLen = sizeof(addrTemp);    
+                        getpeername(fd.fd_array[i],(struct sockaddr *)&addrTemp,&iTempLen);    
+                            
+                        if (SOCKET_ERROR == iRecvSize)  {    
+                            closesocket(fd.fd_array[i]);    
+                            FD_CLR(fd.fd_array[i],&fd);    
+                            i--;    
+                            printf("Failed to recv data ,%s:%d errorcode:%d.\n",    
+                                inet_ntoa(addrTemp.sin_addr),ntohs(addrTemp.sin_port),WSAGetLastError());    
+                            continue;    
+                        }else if( 0 == iRecvSize) {        
+                            printf("%s:%d has closed!\n",inet_ntoa(addrTemp.sin_addr),    
+                                ntohs(addrTemp.sin_port));    
+                                
+                            closesocket(fd.fd_array[i]);    
+                            FD_CLR(fd.fd_array[i],&fd);    
+                            i--;        
+                        }    
+#if 0      
+                        if (0 < iRecvSize)    
+                        {        
+                            printf("recv %s:%d data:%d\n",inet_ntoa(addrTemp.sin_addr),    
+                                ntohs(addrTemp.sin_port),param.size);    
+                        }
+#endif
+
+						if(param.size > 0) {
+							iRecvSize = recv(fd.fd_array[i],databuff,param.size,0); 
+
+							if (SOCKET_ERROR == iRecvSize) {
+                            	closesocket(fd.fd_array[i]);    
+                            	FD_CLR(fd.fd_array[i],&fd);    
+                            	i--;    
+                            	printf("Failed to recv data ,%s:%d errorcode:%d.\n",    
+                               		inet_ntoa(addrTemp.sin_addr),ntohs(addrTemp.sin_port),WSAGetLastError());    
+                            	continue;    
+                        	}else if( 0 == iRecvSize) {        
+                            	printf("%s:%d has closed!\n",inet_ntoa(addrTemp.sin_addr),    
+                               		ntohs(addrTemp.sin_port));    
+                                
+                            	closesocket(fd.fd_array[i]);    
+                            	FD_CLR(fd.fd_array[i],&fd);    
+                            	i--;        
+                        	}    
+						}
+
+						if(_Listener) _Listener(param.inst,param.type,param.size,databuff);
+						
+                    }       
+                }    
+            }    
+        }    
+        else if (SOCKET_ERROR == iResult)    
+        {    
+            //WSACleanup();     
+        //  printf("Faild to select sockt in server!\n");    
+            Sleep(100);    
+        }    
+    }    
+    WSACleanup();
+	_socket_server = INVALID_SOCKET;
+	return 0;
+}
+
+
 int socket_connect(const char *host_name, int port, int dtimeout)
 {
     struct sockaddr_in  host_addr;
@@ -56,6 +223,8 @@ int socket_connect(const char *host_name, int port, int dtimeout)
 	
 #ifdef	WIN32
 	WSADATA ws;
+
+	WSAStartup(0x0101,&ws);
 #endif
 
 	timeout.tv_sec = dtimeout / 1000;
@@ -82,7 +251,6 @@ int socket_connect(const char *host_name, int port, int dtimeout)
 		//closesocket(_socket);
     }
 	
-	WSAStartup(0x0101,&ws);
 #endif
 
 #ifdef __linux
@@ -247,6 +415,13 @@ void socket_disconnect(void)
 
 	_socket = INVALID_SOCKET;
 
+	_Listener = NULL;
+
 	printf("socket closed\n");
 	return;
 }
+
+void socket_setListener(Listener func) {
+	_Listener = func;
+}
+

@@ -23,6 +23,10 @@
 
 #include <SharedBuffer.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <windows.h>
+#endif
 // ---------------------------------------------------------------------------
 SharedBuffer* SharedBuffer::alloc(size_t size)
 {
@@ -107,17 +111,30 @@ SharedBuffer* SharedBuffer::reset(size_t new_size) const
 }
 
 void SharedBuffer::acquire() const {
+#ifndef WIN32
     mRefs++;
+#else
+	InterlockedIncrement((volatile LONG *)&mRefs);
+#endif
 }
 
 int32_t SharedBuffer::release(uint32_t flags) const
 {
     int32_t prev = 1;
+#ifndef WIN32
     if (onlyOwner() || ((prev = (mRefs--)) == 1)) {
         mRefs = 0;
         if ((flags & eKeepStorage) == 0) {
             free(const_cast<SharedBuffer*>(this));
         }
     }
+#else
+	 if (onlyOwner() || ((prev = (InterlockedDecrement((volatile LONG *)&mRefs)) )== 0)) {
+        mRefs = 0;
+        if ((flags & eKeepStorage) == 0) {
+            free(const_cast<SharedBuffer*>(this));
+        }
+    }
+#endif
     return prev;
 }

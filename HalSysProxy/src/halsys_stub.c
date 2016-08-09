@@ -95,6 +95,29 @@ static __inline halsys_ret halsys_param_fixed_stub(const char * routine,void * a
 	return ret;
 }
 
+static __inline halsys_ret  halsys_cb_routine(const char * routine,halsys_cb_param * arg) {
+	packet packet;
+	halsys_ret ret;
+	halsys_packet_header packet_header;
+	halsys_packet_data	packet_data;
+	char * buffer = data_buf[0];
+	unsigned int length = sizeof(halsys_packet_data) + sizeof(halsys_cb_param);
+		
+	packet_header.length = length;
+	strncpy(packet_header.domain_name,DOMAIN_NAME,HALSYS_NAME_LENGTH);	
+	
+	packet_data.param_len = sizeof(halsys_cb_param);	
+	strncpy(packet_data.func_name,routine, HALSYS_NAME_LENGTH);
+		
+	memcpy((void *)buffer,(void *)&packet_data,sizeof(halsys_packet_data));
+	memcpy((void *)(buffer + sizeof(halsys_packet_data)),(void *)arg,sizeof(halsys_cb_param));
+		
+	build_msg(&packet,sizeof(halsys_packet_header),&packet_header,length,buffer,sizeof(halsys_ret),(char *)&ret);
+	
+	send_msg(&packet);
+
+	return ret;
+}
 //*************************************************************
 // Function
 //*************************************************************
@@ -181,6 +204,16 @@ halsys_ret halsys_media_pushframe(media_push_param * arg) {
 	send_msg(&packet);
 
 	return ret;
+}
+
+halsys_ret halsys_media_installcb(halsys_cb_param * arg) {
+	unsigned int length = sizeof(halsys_cb_param) + sizeof(halsys_packet_data);
+	return halsys_param_fixed_stub(ROUTINE,(void *)arg, length);
+}	
+
+halsys_ret halsys_media_uninstallcb(halsys_cb_param * arg) {
+	unsigned int length = sizeof(halsys_cb_param) + sizeof(halsys_packet_data);
+	return halsys_param_fixed_stub(ROUTINE,(void *)arg, length);
 }
 
 halsys_ret halsys_hdmi_initialize(void) {

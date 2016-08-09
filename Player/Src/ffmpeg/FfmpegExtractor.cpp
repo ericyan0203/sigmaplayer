@@ -110,7 +110,7 @@ FfmpegSource::FfmpegSource(
 		isVideo(true),
 		mBuffer(NULL),
 		bEOS(false),
-		mStatus(INVALID){
+		mStatus(NONE){
 				const char *mime;
 				mExtractor->mTracks.itemAt(trackindex).mMeta->findCString(kKeyMIMEType, &mime);
 				if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)) {
@@ -228,22 +228,29 @@ bool FfmpegSource::threadLoop()
 	{
 		Mutex::Autolock autoLock(mLock);
 
-		if(mStatus == PAUSE_PENDING) {
-			mStatus = PAUSED;
+		if( mBuffer == NULL && bEOS){
+			mStatus |= EOS;
+		}	
 
+		if(mStatus & PAUSE_PENDING) {	
+			utils_log(AV_DUMP_ERROR,"%s PAUSE_PENDING->PAUDED \n",isVideo?"Video":"Audio");
+			mStatus &= ~PAUSE_PENDING;
+			mStatus |= PAUSED;
 			mCondition.broadcast();
 			return true;
-		}else if(mStatus == PAUSED)
+		}else if(mStatus & PAUSED)
 		{
 			Sleep(1);
 			return true;
+		}	
+
+		if(mStatus & EOS) {
+			utils_log(AV_DUMP_ERROR,"%s Quit the Thread \n",isVideo?"Video":"Audio");
+			return false;
 		}
-			
 	}
 
-	if( mBuffer == NULL && bEOS) {
-		return false;
-	} else if(mBuffer == NULL){
+	if(mBuffer == NULL){
 		err = read(&mBuffer, NULL);
 	}
 	
@@ -253,7 +260,7 @@ bool FfmpegSource::threadLoop()
 		
     mBuffer->meta_data()->findInt64(kKeyTime, &timeUs);
 
-	//utils_log(AV_DUMP_ERROR,"%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
+	utils_log(AV_DUMP_ERROR,"%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
 #ifdef DEBUGFILE
 	if(isVideo) {
 		fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
@@ -273,6 +280,7 @@ bool FfmpegSource::threadLoop()
 	{
 		flags |= SIGM_BUFFERFLAG_ENDOFSTREAM;
 		bEOS = true;
+		utils_log(AV_DUMP_ERROR,"%s EOS got \n",isVideo?"Video":"Audio");
 #ifdef DEBUGFILE
 	    if(isVideo) fclose(mFile);
 #endif   
@@ -320,24 +328,39 @@ void FfmpegSource::setListener(const wp<HalSysClient> &listener) {
 Error_Type_e FfmpegSource::pause() {
 	Mutex::Autolock autoLock(mLock);
 
-	mStatus = PAUSE_PENDING;
+	if(mStatus & EOS)
+	{
+		utils_log(AV_DUMP_ERROR,"PAUSED %s EOS \n",isVideo?"Video":"Audio");
+		mStatus |= PAUSED;
+		return SIGM_ErrorNone;
+	}
 
-	while(mStatus != PAUSED)
+	mStatus |= PAUSE_PENDING;
+
+	utils_log(AV_DUMP_ERROR,"%s PAUSE_PENDING \n",isVideo?"Video":"Audio");
+	
+	while((mStatus&PAUSED)== NONE)
 		mCondition.wait(mLock);	
 
+	utils_log(AV_DUMP_ERROR,"%s PAUSED \n",isVideo?"Video":"Audio");
 	return SIGM_ErrorNone;
 	
 }
 
 Error_Type_e FfmpegSource::resume() {
 	Mutex::Autolock autoLock(mLock);
-	
-	mStatus = RESUMED;
+
+	mStatus &= ~PAUSED;
+	mStatus |= RESUMED;
+
+	utils_log(AV_DUMP_ERROR,"%s RESUME \n",isVideo?"Video":"Audio");
 
 	return SIGM_ErrorNone;
 }
 
-Error_Type_e FfmpegSource::seekTo(uint64_t timeMS) {
+Error_Type_e FfmpegSource::seekTo(uint64_t timeMS) {	
+	utils_log(AV_DUMP_ERROR,"%s SeekTo %lld ms \n",isVideo?"Video":"Audio",timeMS);
+
 	if(mBuffer != NULL) {
 		mBuffer->release();
     	mBuffer = NULL;
@@ -942,13 +965,17 @@ static int construct_codec_specific_picture_header(AVFormatContext *s,  AVStream
 	return 0;
 }
 
-
+#define DURATION_SIZE  (1*1024*1024)
+#define MAX_RETRY_SIZE 5
 
 int64_t FfmpegExtractor::computeTrackDuration(int track){
 	AVPacket encFrame  ={0};
 	int Ret = 0;
 	int seek_ret = 0;
-	int64_t pts = -1;
+	int64_t pts = -1LL;
+	int64_t seek_target = 0;
+	int retry = 0;
+//	Mutex::Autolock autoLock(mLock);
 
 	if(NULL == pFormatCtx){
 		return 0;
@@ -957,46 +984,52 @@ int64_t FfmpegExtractor::computeTrackDuration(int track){
 	//then we restore back the seek position to zero bytes 
 	//Using AVSEEK_FLAG_BYTE flag
 	printf("file_size:%lld bytes\n",avio_size(pFormatCtx->pb));
-	int64_t seek_target = avio_size(pFormatCtx->pb)-(1024 * 1024);
-	if(seek_target < 0){
-	//file size is < 1MB
-	seek_target = 0;
-	}
 
-	{
-		Mutex::Autolock autoLock(mLock);
-		seek_ret = av_seek_frame(pFormatCtx, track, seek_target, AVSEEK_FLAG_BYTE);
-		if(seek_ret < 0){
-		 printf("AVSEEK_FLAG_BYTE to 1MB before EOF failed\n");
-		 return pts;
+	do {
+		seek_target = avio_size(pFormatCtx->pb)-(DURATION_SIZE<<retry);
+
+		if(seek_target < 0){
+			//file size is < 1MB
+			seek_target = 0;
 		}
-	}
 
-	//read the frames till we reach EOF
-	while(Ret >= 0)
-	{
 		{
-			Mutex::Autolock autoLock(mLock);
-			Ret = av_read_frame(pFormatCtx, &encFrame);
-		}
-		if(Ret <0){
-		 //EOF reached 
-		 	printf("EOF reached while searching for last pts of track %d\n",track);
-			break;
-		}
-		if(track == encFrame.stream_index){
-			if(encFrame.pts != 0x8000000000000000LL){
-			    pts = encFrame.pts;
-			}
-			else if(encFrame.dts != 0x8000000000000000LL){
-			    pts = encFrame.dts;
+			//Mutex::Autolock autoLock(mLock);
+			seek_ret = av_seek_frame(pFormatCtx, track, seek_target, AVSEEK_FLAG_BYTE);
+			if(seek_ret < 0){
+		 		printf("AVSEEK_FLAG_BYTE to 1MB before EOF failed\n");
+		 		retry++;
+				continue;
 			}
 		}
-	}
 
-	//seek back to BOF
+		//read the frames till we reach EOF
+		while(Ret >= 0)
+		{
+			Ret = av_read_frame(pFormatCtx, &encFrame);
+		
+			if(Ret <0){
+		 		//EOF reached 
+		 		printf("EOF reached while searching for last pts of track %d\n",track);
+				retry++;
+				break;
+			}
+			if(track == encFrame.stream_index){
+				if(encFrame.pts != 0x8000000000000000LL){
+			    	pts = encFrame.pts;
+				}
+				else if(encFrame.dts != 0x8000000000000000LL){
+			    	pts = encFrame.dts;
+				}
+			}
+		}
+		Ret = 0;
+		av_free_packet(&encFrame);
+	}while( (retry < MAX_RETRY_SIZE) && (pts==-1LL));
+
+		//seek back to BOF
 	{
-		Mutex::Autolock autoLock(mLock);
+		//Mutex::Autolock autoLock(mLock);
 		seek_ret = av_seek_frame(pFormatCtx, track, 0, AVSEEK_FLAG_BYTE);
 		if(seek_ret < 0){
 			printf("AVSEEK_FLAG_BYTE to BOF failed\n");
@@ -1019,6 +1052,7 @@ int FfmpegExtractor::addTracks() {
 		AVRational      *pAVFrameRate;
 		pInputFileFormat = NULL;
 		bool bContextAlreadyExists = false;
+		Mutex::Autolock autoLock(mLock);
 
 		if(mTracks.size() > 0){
 				printf("why are we trying to add tracks when it is already done!!\n");
@@ -1478,10 +1512,13 @@ int FfmpegExtractor::addTracks() {
 
 				int64_t duration;
 				int     num, den;
+#if 1				
 				if(pFormatCtx->streams[uCount]->duration != 0x8000000000000000LL){
 						duration = pFormatCtx->streams[uCount]->duration; 
 				}
-				else{
+				else
+#endif
+				{
 				      //compute the track duration the hard way-pts way 
 					  printf("Track %d duration is unknown trying for pts diff\n",uCount);
 
@@ -1632,7 +1669,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 		//try to get the frames from prefetched lists
 		if(trackIndex == mCurrentVideoTrack){
 				//Lock the video list while retrieving data
-				Mutex::Autolock autoLock(mVListLock);
+				Mutex::Autolock autoLockV(mVListLock);
 				if(encVideoFrameList.size() <= 0){
 						if(mIsVsdTobeSent && mIsVideoCodecSpecificDataValid){
 								if((AV_CODEC_ID_H264 != pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id )/* ||
@@ -1672,7 +1709,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 				}
 		}else if(trackIndex == mCurrentAudioTrack){
 				//Lock the audio list while retrieving data
-				Mutex::Autolock autoLock(mAListLock);
+				Mutex::Autolock autoLockA(mAListLock);
 
 				if(encAudioFrameList.size() <= 0){
 						if(mIsAsdTobeSent && mIsAudioCodecSpecificDataValid){
@@ -2130,7 +2167,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 								{
 									//lock the list while pushing
-									Mutex::Autolock autoLock(mVListLock);
+									Mutex::Autolock autoLockV(mVListLock);
 									encVideoFrameList.push_back(t);
 									mVListSize+=buffer->size();
 									//ALOGE("vlist size at push (%d)\n", mVListSize);
@@ -2172,7 +2209,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 								t->encFrame = buffer;
 								//lock the list while pushing
 								{	
-									Mutex::Autolock autoLock(mAListLock);
+									Mutex::Autolock autoLockA(mAListLock);
 									encAudioFrameList.push_back(t);
 									mAListSize+=buffer->size();
 									//ALOGE("alist size at push (%d)\n", mAListSize);
