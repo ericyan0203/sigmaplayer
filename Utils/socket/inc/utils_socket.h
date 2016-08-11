@@ -24,13 +24,15 @@ typedef struct CALLBACK_PARAM {
 #pragma pack(pop)
 
 
-typedef void (*Listener)(int inst,int event,int data_sz ,void * data_cb);
-
+typedef int (*Observer)(void * inst,int event,void * data_cb);
 
 int socket_connect(const char *host_name, int port, int dtimeout);
 int socket_send(packet * pack);
-void socket_setListener(Listener func);
+void socket_setListener(Observer ob);
 void socket_disconnect(void);
+
+void  client_server_start(void);
+void  client_server_stop(void);
 
 #ifdef __cplusplus
 }

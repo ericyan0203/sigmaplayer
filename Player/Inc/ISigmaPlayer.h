@@ -3,9 +3,14 @@
 
 #include <RefBase.h>
 #include <KeyedVector.h>
+#include <Mutex.h>
+#include <Listener.h>
 
 #include "SIGM_Types.h"
 
+// callback mechanism for passing messages to MediaPlayer object
+typedef void (*notify_callback_f)(void* cookie,
+        int msg, int ext1, int ext2, unsigned int *obj);
 
 enum media_event_type {
     MEDIA_NOP               = 0, // interface test message
@@ -25,7 +30,7 @@ enum media_parameter_key {
 	MEDIA_DURATION,
 };
 
-class ISigmaPlayer: /*public VirtualLightRefBase*/public virtual RefBase {
+class ISigmaPlayer: /*public VirtualLightRefBase*/public virtual RefBase ,public virtual Listener{
 public:
     ISigmaPlayer(){};                                                     \
     virtual ~ISigmaPlayer(){}; 
@@ -44,8 +49,6 @@ public:
 
     virtual Error_Type_e        setParameter(int key, const void * request) = 0;
     virtual Error_Type_e        getParameter(int key, void * reply) = 0;
-
-	virtual Error_Type_e        sendEvent(int msg, int ext1=0, int ext2=0) = 0;
 };
 
 #endif

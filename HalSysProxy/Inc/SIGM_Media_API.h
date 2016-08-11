@@ -24,7 +24,7 @@ Error_Type_e HalSys_Media_Pause(sigma_handle_t ptInst);
 
 Error_Type_e HalSys_Media_Resume(sigma_handle_t ptInst);
 
-Error_Type_e HalSys_Media_Flush(sigma_handle_t ptInst, FlushMode_e eMode);
+Error_Type_e HalSys_Media_Flush(sigma_handle_t ptInst, Media_FlushConfig_t * pConfig);
 
 //Error_Type_e HalSys_Media_SetParameter(sigma_handle_t ptInst, SIGM_PARAMETER_INDEX eParameter, datatype_ptr pData);
 

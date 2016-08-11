@@ -7,6 +7,7 @@
 #endif
 
 #include "SIGM_Media_API.h"
+#include "SIGM_Utils.h"
 #include "halsys_stub.h"
 
 #define data_len  (6*1024*1024)
@@ -107,12 +108,13 @@ Error_Type_e HalSys_Media_Resume(sigma_handle_t ptInst){
 	return (Error_Type_e)(ret.common_ret.ret);
 }
 
-Error_Type_e HalSys_Media_Flush(sigma_handle_t ptInst, FlushMode_e eMode){
+Error_Type_e HalSys_Media_Flush(sigma_handle_t ptInst, Media_FlushConfig_t * pConfig){
 	halsys_ret ret;
 	media_flush_param param;
 
 	param.instance = (unsigned int)ptInst;
-	param.flush_mode = (unsigned char)eMode;
+	param.flush_mode = pConfig->eMode;
+	param.timestamp = pConfig->nTimeStamp;
  
 	ret = halsys_media_flush(&param);
 
@@ -155,6 +157,8 @@ Error_Type_e HalSys_Media_InstallCallback(CallBackFuncsInfo_t* const pCbInfo, si
 
 	pCbInfo->sub_id = ret.cb_ret.subid;
 
+	Utils_RegisteCallback(pCbInfo,pInfoRoutine,pUserParam);
+
 	return (Error_Type_e)(ret.cb_ret.ret);
 }
 
@@ -167,6 +171,8 @@ Error_Type_e HalSys_Media_UnInstallCallback(CallBackFuncsInfo_t* pCbInfo) {
 	param->subid = pCbInfo->sub_id;
 
 	ret = halsys_media_uninstallcb(param);
+
+	Utils_UnregisteCallback(pCbInfo);
 
 	return (Error_Type_e)(ret.cb_ret.ret);
 }

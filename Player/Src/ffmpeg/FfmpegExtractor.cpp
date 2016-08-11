@@ -311,7 +311,7 @@ bool FfmpegSource::threadLoop()
     mBuffer = NULL;
 #endif
 	//else  keep the back up the data
-	Sleep(1);
+	Sleep(5);
 	return true;
 }
 

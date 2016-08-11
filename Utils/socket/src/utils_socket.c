@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
-
+#include <pthread.h>
 #include "utils_socket.h"
 
 #ifdef	WIN32 
@@ -34,7 +34,10 @@ static SOCKET _socket = INVALID_SOCKET;
 static SOCKET _socket_server =  INVALID_SOCKET;
 char databuff[INT_DATABUFFER_SIZE]; 
 
-Listener _Listener = NULL;
+Observer _Ob = NULL;
+static int up_port_num = -1;
+static int down_port_num = -1;
+static int bExit = 0;
 
 static HANDLE Lock(char* name)
 {
@@ -51,7 +54,7 @@ static int Unlock(HANDLE mutex)
     return 1;
 }
 
-static int online_server(const char *host_name, int port, int dtimeout)
+static void * online_server(void *args)
 {
     WSADATA wsaData;
 	int iResult;
@@ -72,7 +75,8 @@ static int online_server(const char *host_name, int port, int dtimeout)
 
 	if(_socket_server != INVALID_SOCKET) {
 		printf("socket has already established\n");
-		return 0;
+		WSACleanup();
+		return NULL;
 	}
 	
      _socket_server = socket(AF_INET,SOCK_STREAM,0);
@@ -81,20 +85,20 @@ static int online_server(const char *host_name, int port, int dtimeout)
     {    
         printf("Failed to create socket!\n");    
         WSACleanup();    
-        return -1;    
+        return NULL;    
     }    
     
     memset(&addrServer,0,sizeof(struct sockaddr_in));    
     addrServer.sin_family = AF_INET;    
-    addrServer.sin_port = htons(port);    
-    addrServer.sin_addr.S_un.S_addr = htonl(INADDR_ANY);      
+    addrServer.sin_port = htons(down_port_num);    
+    addrServer.sin_addr.S_un.S_addr = htonl(INADDR_ANY); 
       
     iResult = setsockopt(_socket_server,SOL_SOCKET,SO_REUSEADDR,(char *)&bReuseAddr,sizeof(bReuseAddr));    
 
 	if(SOCKET_ERROR == iResult){    
         printf("Failed to set resueaddr socket!\n");    
         WSACleanup();    
-        return -1;    
+        return NULL;    
     }      
     
     iResult = bind(_socket_server,(struct sockaddr *)&addrServer,sizeof(addrServer));    
@@ -102,21 +106,21 @@ static int online_server(const char *host_name, int port, int dtimeout)
     {    
         printf("Failed to bind address!\n");    
         WSACleanup();    
-        return -1;    
+        return  NULL;    
     }    
     
     if (0 != listen(_socket_server,5))    
     {    
         printf("Failed to listen client!\n");    
         WSACleanup();    
-        return -1;    
+        return NULL;    
     }    
        
     FD_ZERO(&fd);    
     FD_SET(_socket_server,&fd);    
       
     printf("Start server...\n");    
-    while(1)    
+    while(!bExit)    
     {    
         fd_set fdOld = fd;    
         iResult = select(0,&fdOld,NULL,NULL,/*&tm*/NULL);    
@@ -171,7 +175,7 @@ static int online_server(const char *host_name, int port, int dtimeout)
                                 ntohs(addrTemp.sin_port),param.size);    
                         }
 #endif
-
+						printf("param inst %x type %x size %d\n",param.inst,param.type,param.size);
 						if(param.size > 0) {
 							iRecvSize = recv(fd.fd_array[i],databuff,param.size,0); 
 
@@ -192,7 +196,7 @@ static int online_server(const char *host_name, int port, int dtimeout)
                         	}    
 						}
 
-						if(_Listener) _Listener(param.inst,param.type,param.size,databuff);
+						if(_Ob) _Ob(param.inst,param.type,databuff);
 						
                     }       
                 }    
@@ -208,6 +212,30 @@ static int online_server(const char *host_name, int port, int dtimeout)
     WSACleanup();
 	_socket_server = INVALID_SOCKET;
 	return 0;
+}
+
+void  client_server_start(void) {
+	pthread_attr_t attr;
+    int res = 0;
+    pthread_t _thread;
+
+	bExit = 0;
+	
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    printf("Creat clinet server pthread here!!!!\n");
+    res = pthread_create(&_thread, &attr, online_server, NULL);
+    if (res != 0) {
+         printf("ERROR: Can't start  online server\n");
+    }
+	pthread_attr_destroy(&attr);
+	return;
+}
+
+void  client_server_stop(void) {
+	bExit = 1;
+	return;
 }
 
 
@@ -242,6 +270,9 @@ int socket_connect(const char *host_name, int port, int dtimeout)
 #endif
 
     host_addr.sin_port             = htons((short)port);
+
+	up_port_num = port;
+	down_port_num = port + 1;
 
 #ifdef	WIN32
     if (_socket != INVALID_SOCKET)
@@ -314,10 +345,11 @@ int socket_connect(const char *host_name, int port, int dtimeout)
     fcntl(_socket,F_SETFL, O_NONBLOCK);
 #endif
 
-	printf("dtimeout %d\n",dtimeout);
+	//printf("dtimeout %d\n",dtimeout);
 
     setsockopt(_socket,   SOL_SOCKET,   SO_SNDTIMEO, (char*)&dtimeout,   sizeof(dtimeout));
     setsockopt(_socket,   SOL_SOCKET,   SO_RCVTIMEO, (char*)&dtimeout,   sizeof(dtimeout));
+	
     
     return 0;
 }
@@ -401,8 +433,7 @@ ERROR_OUT:
 	return -1;
 }
 
-void socket_disconnect(void)
-{
+void socket_disconnect(void){
 #ifdef	WIN32
     closesocket(_socket);
  
@@ -415,13 +446,13 @@ void socket_disconnect(void)
 
 	_socket = INVALID_SOCKET;
 
-	_Listener = NULL;
+	_Ob = NULL;
 
 	printf("socket closed\n");
 	return;
 }
 
-void socket_setListener(Listener func) {
-	_Listener = func;
+void socket_setListener(Observer ob) {
+	_Ob = ob;
 }
 

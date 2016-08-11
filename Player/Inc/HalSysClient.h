@@ -4,6 +4,8 @@
 #include <Refbase.h>
 #include <String8.h>
 #include <Mutex.h>
+#include <Listener.h>
+
 #include "SIGM_Types.h"
 #include "SIGM_Media_API.h"
 
@@ -28,9 +30,12 @@ public:
 	Error_Type_e stop();
 	Error_Type_e pause();
 	Error_Type_e resume();
-	Error_Type_e flush();
+	Error_Type_e flush(int64_t timeMs);
 
 	Error_Type_e handleBuffer(Media_Buffer_t *buffer);
+
+	void HalSysClient::setListener(const wp<Listener> &listener);
+	void HalSysClient::notifyListener_l(int msg, int ext1, int ext2 ,unsigned int * obj);
 	
 private:
     HalSysClient(const HalSysClient &);
@@ -41,8 +46,12 @@ private:
 	Audio_CodingType_e mAudioFormat;
 
 	mutable Mutex mLock;
-	
+	mutable Mutex mCallbackLock;
+    
+	wp<Listener> mListener;
 	sigma_handle_t mHandle;
+
+	CallBackFuncsInfo_t  tEOSCbInfo;
 	
 };
 #endif

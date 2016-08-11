@@ -39,11 +39,10 @@ struct SigmaMediaPlayerImpl {
     // This is a mask of MediaExtractor::Flags.
     uint32_t flags() const;
 
-	void setListener(const wp<ISigmaPlayer> &listener);
+	void setListener(const wp<Listener> &listener);
 
-	Error_Type_e  notifyListener_l(int msg, int ext1 = 0, int ext2 = 0);
+	void  notifyListener_l(int msg, int ext1 = 0, int ext2 = 0, unsigned int * obj = NULL);
 
-	Error_Type_e  sendEvent(int msg, int ext1=0, int ext2=0);
 
 private:
     enum {
@@ -84,6 +83,8 @@ private:
     mutable Mutex mLock;
    
     mutable Mutex mStatsLock;
+
+    mutable Mutex mCallbackLock;
     
     bool mUIDValid;
     uid_t mUID;
@@ -101,7 +102,7 @@ private:
     sp<MediaSource> mVideoTrack;
 	sp<MediaSource> mAudioTrack;
 
-	wp<ISigmaPlayer> mListener;
+	wp<Listener> mListener;
 	
     ssize_t mActiveAudioTrackIndex;
 	ssize_t mActiveVideoTrackIndex;

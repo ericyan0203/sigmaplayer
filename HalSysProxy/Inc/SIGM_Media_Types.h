@@ -73,6 +73,11 @@ typedef struct MEDIA_CONFIG {
     trid_bool bLowLatency;
 } Media_Config_t, *pMedia_Config_t;
 
+typedef struct MEDIA_FLUSH_CONFIG {
+	FlushMode_e eMode;
+	trid_uint64 nTimeStamp;
+}Media_FlushConfig_t,*pMedia_FlushConfig_t;
+
 #ifdef __cplusplus
 }
 #endif

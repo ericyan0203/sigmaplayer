@@ -26,6 +26,7 @@
 #include "MediaSource.h"
 #include "MetaData.h"
 #include "FfmpegExtractor.h"
+#include "Listener.h"
 
 #define DEFAULT_IP  	"127.0.0.1"
 #define DEFAULT_PORT 	0
@@ -91,6 +92,7 @@ SigmaMediaPlayerImpl::SigmaMediaPlayerImpl()
 	//Init Platform
 #ifdef HALSYS
 	mClient->connect();
+ 	mClient->setListener(mListener);
 #endif	
     DataSource::RegisterDefaultSniffers();
 
@@ -524,20 +526,18 @@ Error_Type_e SigmaMediaPlayerImpl::seekTo_l(int64_t timeMs) {
     mSeekTimeUs = timeMs;
     modifyFlags((AT_EOS | AUDIO_AT_EOS | VIDEO_AT_EOS), CLEAR);
 
-	utils_log(AV_DUMP_ERROR,"seekTo %d ms\n",timeMs);
+	utils_log(AV_DUMP_ERROR,"seekTo %lld ms\n",timeMs);
 	
-	if(haveVideo) {
-		mVideoTrack->pause();
-		mVideoTrack->seekTo(timeMs);
-	}
+	if(haveVideo) mVideoTrack->pause();
+	if(haveAudio) mAudioTrack->pause();
 
-	if(haveAudio) {
-		mAudioTrack->pause();
-		mAudioTrack->seekTo(timeMs);
-	}
+	
+	if(haveAudio) mAudioTrack->seekTo(timeMs);
+	if(haveVideo) mVideoTrack->seekTo(timeMs);
 
+	
 #ifdef HALSYS
-	mClient->flush();
+	mClient->flush(timeMs);
 #endif
 
 	if(haveVideo) mVideoTrack->resume();
@@ -702,23 +702,20 @@ void SigmaMediaPlayerImpl::setAudioSource(sp<MediaSource> source) {
     mAudioTrack = source;
 }
 
-void SigmaMediaPlayerImpl::setListener(const wp<ISigmaPlayer> &listener) {
-    Mutex::Autolock autoLock(mLock);
+void SigmaMediaPlayerImpl::setListener(const wp<Listener> &listener) {
+    Mutex::Autolock autoLock(mCallbackLock);
     mListener = listener;
 }
 
-Error_Type_e SigmaMediaPlayerImpl::notifyListener_l(int msg, int ext1, int ext2) {
-    if (mListener != NULL) {
-        sp<ISigmaPlayer> listener = mListener.promote();
+void SigmaMediaPlayerImpl::notifyListener_l(int msg, int ext1, int ext2 , unsigned int * obj) {
+	Mutex::Autolock autoLock(mCallbackLock);
+	if (mListener != NULL) {
+        sp<Listener> listener = mListener.promote();
 
         if (listener != NULL) {
-            return listener->sendEvent(msg, ext1, ext2);
+            listener->sendEvent(msg, ext1, ext2 ,obj);
         }
     }
-	return SIGM_ErrorNone;
-}
-
-Error_Type_e SigmaMediaPlayerImpl::sendEvent(int msg, int ext1, int ext2) {
-	return SIGM_ErrorNone;
+	return;
 }
 

@@ -122,7 +122,8 @@ typedef struct HALSYS_CALLBACK_RETURN {
 #pragma pack(1)
 typedef struct MEDIA_FLUSH_PARAMETER {
     unsigned int instance;
-    unsigned char flush_mode;
+    unsigned int flush_mode;
+	unsigned long long timestamp;
 } media_flush_param;
 #pragma pack(pop)
 

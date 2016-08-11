@@ -23,7 +23,6 @@ struct SigmaMediaPlayer : public ISigmaPlayer {
     virtual Error_Type_e reset();
     virtual Error_Type_e setParameter(int key, const void * request);
     virtual Error_Type_e getParameter(int key, void *reply);
-	virtual Error_Type_e sendEvent(int msg, int ext1=0, int ext2=0);
 	
 private:
     SigmaMediaPlayerImpl *mPlayer;
