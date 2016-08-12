@@ -20,6 +20,7 @@
 #include "SIGM_Types.h"
 
 #define INITIAL_STREAM_BUF_SIZE 512 * 1024
+//#define DEBUGFILE "./ffmpeg.es"
 
 #ifdef __cplusplus  
 extern "C"   
@@ -55,6 +56,8 @@ struct FfmpegExtractor : public MediaExtractor {
 		virtual void setTrackActive(int trackIndex, bool enable);
 
 		virtual MediaBuffer * getNextEncFrame(int trackIndex,int64_t seekTime, int seekMode);
+
+		virtual void seekTo(int trackIndex,int64_t time_us);
 		
 		static bool mIsAvRegistered;
 

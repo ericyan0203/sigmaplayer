@@ -42,7 +42,7 @@ extern "C" {
 #include <unistd.h>
 #endif
 
-//#define DEBUGFILE "d://ffmpeg.es"
+
 
 static bool bIsAvRegistered;
 
@@ -184,21 +184,26 @@ sp<MetaData> FfmpegSource::getFormat() {
 Error_Type_e FfmpegSource::read(
 				MediaBuffer **out, const ReadOptions *options) {
 		*out = NULL;
+
 		int64_t seekTimeUs = -1;//default no seek
 		ReadOptions::SeekMode mode;
 		//set the current track as active
 		mExtractor->setTrackActive(mTrackIndex,true);
 
+		mOptions.getSeekTo(&seekTimeUs, &mode);
+#if 0
 		if (mOptions.getSeekTo(&seekTimeUs, &mode)) {
 	        printf("ffmpeg seek requested for track %d mode %d\n",mTrackIndex,mode);
 			//we need to send demux ref track index
 			*out = mExtractor->getNextEncFrame(mDemuxRefTrackIndex,seekTimeUs,mode);
 			//*out = mExtractor->getNextEncFrame(mTrackIndex,seekTimeUs,mode);
-		}else{
+		}else
+#endif
+	    {
 		    //we need to send demux ref track index
 		     *out = mExtractor->getNextEncFrame(mDemuxRefTrackIndex,-1,mode); 
 		     // *out = mExtractor->getNextEncFrame(mTrackIndex,-1,mode);
-		 }
+		}
 
 #if 0
 		//ALOGI("(*out)->data():0x%x offset:0x%x length:%d\n",(*out)->data(),(*out)->range_offset(),(*out)->range_length());
@@ -240,6 +245,7 @@ bool FfmpegSource::threadLoop()
 			return true;
 		}else if(mStatus & PAUSED)
 		{
+			utils_log(AV_DUMP_ERROR,"%s PAUSE_PAUSED \n",isVideo?"Video":"Audio");
 			Sleep(1);
 			return true;
 		}	
@@ -251,10 +257,11 @@ bool FfmpegSource::threadLoop()
 	}
 
 	if(mBuffer == NULL){
+		utils_log(AV_DUMP_ERROR,"%s read buffer\n",isVideo?"Video":"Audio");
 		err = read(&mBuffer, NULL);
 	}
 	
-	mOptions.clearSeekTo();
+	//mOptions.clearSeekTo();
 	
 	size = mBuffer->size();
 		
@@ -355,10 +362,16 @@ Error_Type_e FfmpegSource::resume() {
 
 	utils_log(AV_DUMP_ERROR,"%s RESUME \n",isVideo?"Video":"Audio");
 
+#ifdef DEBUGFILE
+	if(isVideo) rewind(mFile);	
+#endif
 	return SIGM_ErrorNone;
 }
 
 Error_Type_e FfmpegSource::seekTo(uint64_t timeMS) {	
+	int64_t seekTimeUs = -1;//default no seek
+	ReadOptions::SeekMode mode;
+
 	utils_log(AV_DUMP_ERROR,"%s SeekTo %lld ms \n",isVideo?"Video":"Audio",timeMS);
 
 	if(mBuffer != NULL) {
@@ -369,6 +382,13 @@ Error_Type_e FfmpegSource::seekTo(uint64_t timeMS) {
 	mOptions.setSeekTo(
              timeMS*1000,
  			 MediaSource::ReadOptions::SEEK_CLOSEST_SYNC);
+
+	mOptions.getSeekTo(&seekTimeUs, &mode);
+
+	//don't carer about the mode
+	mExtractor->seekTo(mDemuxRefTrackIndex,seekTimeUs);
+
+	mOptions.clearSeekTo();
 
 	return SIGM_ErrorNone;
 }
@@ -1578,7 +1598,7 @@ void FfmpegExtractor::setTrackActive(int trackIndex, bool enable) {
 MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime, int seekMode){
 		AVPacket		 encFrame  ={0};
 		MediaBuffer * frame = NULL;
-		bool bFrameAvailable = false,bIsseekmode = false;
+		bool bFrameAvailable = false;
 		int Ret = 0;
 		int entrypointSize   = 0;
 		Mutex::Autolock autoLock(mLock);
@@ -1587,85 +1607,13 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 		const int AUDIO_MAXQ_SIZE=10*1024*1024;
 
 		if(NULL == pFormatCtx){
-				printf("No valid AV context FATAL!\n");
-				return NULL;
+			printf("No valid AV context FATAL!\n");
+			return NULL;
 		}
 
-		//flush all tracks prefetched lists if seek requested for any
-		// one track..this may cause multiple ffmpeg seeks..
-		if(seekTime >= 0){ 
-				printf("ffmpeg Seek mode\n");
-				bIsseekmode = true;
-				//do the ffmpeg seek
-				int64_t seek_target = seekTime;
-				int seek_flags = -1;
-				switch(seekMode){
-						case   0://SEEK_PREVIOUS_SYNC:
-						case   1://SEEK_NEXT_SYNC:
-						case   2://SEEK_CLOSEST_SYNC:
-						case   3://SEEK_CLOSEST:
-								seek_flags = 0;
-								break;
-
-						default :
-								printf("Invalid Seek mode\n");
-								break;
-
-				}
-				
-				if(trackIndex >=0){
-						/*seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q,
-						  pFormatCtx->streams[trackIndex]->time_base); */
-						//For wmv, vc1
-						seek_target = (seekTime/(double)1000000) *(double) pFormatCtx->streams[trackIndex]->time_base.den/(double)pFormatCtx->streams[trackIndex]->time_base.num;
-						//seek_target = seekTime;
-				}
-
-				int seek_ret = 0;
-				{
-					//	Mutex::Autolock autoLock(mLock);
-						seek_ret = av_seek_frame(pFormatCtx, trackIndex, seek_target, AVSEEK_FLAG_ANY);
-				}
-				if(seek_ret < 0) {
-						printf("ffmpeg error while seeking track %d\n",trackIndex);
-				}
-				else{ //ffmpeg seek is successful flush prefetched pkts
-						printf("seek successful\n");
-						if(trackIndex == mCurrentVideoTrack) {
-							printf("flush video buffer\n");
-							while(encVideoFrameList.size() > 0){
-									TrackEncFrame * out = *encVideoFrameList.begin();
-									encVideoFrameList.erase(encVideoFrameList.begin());
-									if(NULL!=out && NULL!=out->encFrame){
-
-											mVListSize-=out->encFrame->size();
-											out->encFrame->release();
-									}
-									if(out){
-										delete out;
-									}
-
-							}
-						}else if(trackIndex == mCurrentAudioTrack) {
-							printf("flush audio buffer\n");
-							while(encAudioFrameList.size() > 0){
-								TrackEncFrame * out = *encAudioFrameList.begin();
-								encAudioFrameList.erase(encAudioFrameList.begin());
-								if(NULL!=out && NULL!=out->encFrame){
-										mAListSize-=out->encFrame->size();
-										out->encFrame->release();
-								}
-								if(out){
-									delete out;
-								}
-
-							}
-						}
-
-				}
-
-		}
-
+		//flush all tracks prefetched lists if seek requested for any 
+		//move to seekTo
+		
 		//try to get the frames from prefetched lists
 		if(trackIndex == mCurrentVideoTrack){
 				//Lock the video list while retrieving data
@@ -1952,6 +1900,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 							}						
 							pvc1Frm->firstFrame = 0xf;	
 							}
+#if 0
 							else if(bIsseekmode)
 							{
 									//copy start seq data as decoder is resetting after seek
@@ -1959,6 +1908,7 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 										   data += gWMVseqhdrLength;
 										   headersize += gWMVseqhdrLength;		 */		
 							}
+#endif
 							/* For video packet we need to add frame header at the begining of the buffer this is the required by WMV  */
 
 							if(construct_codec_specific_picture_header(pFormatCtx,pFormatCtx->streams[mCurrentVideoTrack],pkt)<0){
@@ -2248,6 +2198,71 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 
 		return frame;
 }
+
+void  FfmpegExtractor::seekTo(int trackIndex,int64_t time_us){
+	bool bIsseekmode = false;
+	Mutex::Autolock autoLock(mLock);
+	
+	// one track..this may cause multiple ffmpeg seeks..
+	if(time_us >= 0){ 
+		utils_log(AV_DUMP_ERROR,"ffmpeg Seek mode trackIndex %d\n",trackIndex);
+		bIsseekmode = true;
+
+		//do the ffmpeg seek
+		int64_t seek_target = time_us;
+		int seek_flags = -1;
+
+		if(trackIndex >=0){
+			/*seek_target= av_rescale_q(seek_target, AV_TIME_BASE_Q,
+			 pFormatCtx->streams[trackIndex]->time_base); */
+			//For wmv, vc1
+			seek_target = (time_us/(double)1000000) *(double) pFormatCtx->streams[trackIndex]->time_base.den/(double)pFormatCtx->streams[trackIndex]->time_base.num;
+			//seek_target = seekTime;
+		}
+	
+		int seek_ret = 0;
+		{
+			seek_ret = av_seek_frame(pFormatCtx, trackIndex, seek_target, AVSEEK_FLAG_ANY);
+		}
+		if(seek_ret < 0) {
+			utils_log(AV_DUMP_ERROR,"ffmpeg error while seeking track %d\n",trackIndex);
+		}else{ //ffmpeg seek is successful flush prefetched pkts
+			utils_log(AV_DUMP_ERROR,"seek successful\n");
+			if(trackIndex == mCurrentVideoTrack) {
+				utils_log(AV_DUMP_ERROR,"flush video buffer\n");
+				while(encVideoFrameList.size() > 0){
+					TrackEncFrame * out = *encVideoFrameList.begin();
+					encVideoFrameList.erase(encVideoFrameList.begin());
+					if(NULL!=out && NULL!=out->encFrame){	
+						mVListSize-=out->encFrame->size();
+						out->encFrame->release();
+					}
+					if(out){
+						delete out;
+					}
+				}
+			}else if(trackIndex == mCurrentAudioTrack) {
+				utils_log(AV_DUMP_ERROR,"flush audio buffer\n");
+				while(encAudioFrameList.size() > 0){
+					TrackEncFrame * out = *encAudioFrameList.begin();
+					encAudioFrameList.erase(encAudioFrameList.begin());
+					if(NULL!=out && NULL!=out->encFrame){
+						mAListSize-=out->encFrame->size();
+						out->encFrame->release();
+					}
+					if(out){
+						delete out;
+					}
+	
+				}
+			}
+	
+		}
+	
+	}
+	return;
+}
+
 bool FfmpegExtractor::mIsAvRegistered = false;
 Vector<FfmpegExtractor::avcontext> FfmpegExtractor::mContexts;
 
