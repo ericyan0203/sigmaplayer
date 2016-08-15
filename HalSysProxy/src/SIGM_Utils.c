@@ -194,6 +194,9 @@ Error_Type_e Utils_UnregisteCallback(CallBackFuncsInfo_t* const pCbInfo) {
 
     if (!pInfoHandler || !pCbInfo) return SIGM_ErrorBadParameter;
 
+
+	printf("Utils_UnregisteCallback\n");
+
     pthread_mutex_lock(&pInfoHandler->tInfoLock);
 
     for (i = 0; i < MAX_CALLBACKINFO_NUM; i++) {
@@ -235,6 +238,8 @@ Error_Type_e Utils_InvokeCallback(sigma_handle_t ptInst, SIGM_EVENT_INDEX nIndex
 
     tCbInfo.InfoID = nIndex;
     tCbInfo.ptInst = ptInst;
+
+	printf("Utils_InvokeCallback Info %x inst %llx\n",nIndex,ptInst);
 
     for (i = 0; i < MAX_CALLBACKINFO_NUM; i++) {
         pInfoCb = &(pInfoHandler->InfoArray[i]);

@@ -257,7 +257,7 @@ bool FfmpegSource::threadLoop()
 	}
 
 	if(mBuffer == NULL){
-		utils_log(AV_DUMP_ERROR,"%s read buffer\n",isVideo?"Video":"Audio");
+		//utils_log(AV_DUMP_ERROR,"%s read buffer\n",isVideo?"Video":"Audio");
 		err = read(&mBuffer, NULL);
 	}
 	
@@ -267,7 +267,7 @@ bool FfmpegSource::threadLoop()
 		
     mBuffer->meta_data()->findInt64(kKeyTime, &timeUs);
 
-	utils_log(AV_DUMP_ERROR,"%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
+	//utils_log(AV_DUMP_ERROR,"%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
 #ifdef DEBUGFILE
 	if(isVideo) {
 		fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
@@ -311,7 +311,7 @@ bool FfmpegSource::threadLoop()
     	mBuffer = NULL;
 	}
 	else{
-		utils_log(AV_DUMP_ERROR,"push error ret %x\n",err);
+	//	utils_log(AV_DUMP_ERROR,"push error ret %x\n",err);
 	}
 #else
 	mBuffer->release();

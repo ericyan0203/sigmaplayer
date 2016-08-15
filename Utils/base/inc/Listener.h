@@ -5,7 +5,7 @@
 
 
 // callback mechanism for passing messages to MediaPlayer object
-typedef void (*notify_callback_f)(void* cookie,
+typedef void (*notify_callback_t)(void* cookie,
         int msg, int ext1, int ext2, unsigned int *obj);
 
 
@@ -15,7 +15,7 @@ public:
     virtual ~Listener(){}; 
 
 	 void   setNotifyCallback(
-            void* cookie, notify_callback_f notifyFunc) {
+            void* cookie, notify_callback_t notifyFunc) {
         Mutex::Autolock autoLock(mNotifyLock);
         mCookie = cookie; mNotify = notifyFunc;
     }
@@ -29,7 +29,7 @@ public:
 private:	
     Mutex               mNotifyLock;
     void*               mCookie;
-    notify_callback_f   mNotify;
+    notify_callback_t   mNotify;
 };
 
 #endif

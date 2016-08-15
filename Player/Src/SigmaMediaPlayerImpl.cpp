@@ -92,7 +92,6 @@ SigmaMediaPlayerImpl::SigmaMediaPlayerImpl()
 	//Init Platform
 #ifdef HALSYS
 	mClient->connect();
- 	mClient->setListener(mListener);
 #endif	
     DataSource::RegisterDefaultSniffers();
 
@@ -705,6 +704,7 @@ void SigmaMediaPlayerImpl::setAudioSource(sp<MediaSource> source) {
 void SigmaMediaPlayerImpl::setListener(const wp<Listener> &listener) {
     Mutex::Autolock autoLock(mCallbackLock);
     mListener = listener;
+	mClient->setListener(mListener);
 }
 
 void SigmaMediaPlayerImpl::notifyListener_l(int msg, int ext1, int ext2 , unsigned int * obj) {

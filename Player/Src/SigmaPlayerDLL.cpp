@@ -18,7 +18,7 @@ sp<SigmaMediaPlayer> player = NULL;
 int mPort = 52116;
 char mIP[256]= {0};
 
-int InitPlatform(const char * ip, const int port){
+int sigma_player_init(const char * ip, const int port){
 	utils_init("./sigma.log");
 	Utils_InitInfoArray();
 	
@@ -31,7 +31,7 @@ int InitPlatform(const char * ip, const int port){
 	return 0;
 }
 
-int DeInitPlatform() {
+int sigma_player_deinit() {
 	utils_deinit();
 	Utils_DeinitInfoArray();
 	socket_disconnect();
@@ -40,7 +40,7 @@ int DeInitPlatform() {
 }
 
 
-int  CreatePlayer(const char * url,void** phandle){
+int  sigma_player_create(const char * url,void** phandle){
 	 player = new SigmaMediaPlayer();
 	 player->setDataSource(url);
 	 player->start();
@@ -50,7 +50,7 @@ int  CreatePlayer(const char * url,void** phandle){
 	 return 0;
 }
 
-int  DestroyPlayer(void * phandle) {
+int  sigma_player_destroy(void * phandle) {
 	if(phandle == player.get()) {
 	 	player->stop();
 	 	player.clear();
@@ -63,7 +63,7 @@ int  DestroyPlayer(void * phandle) {
 }
 
 
-int  PausePlayer(void * phandle) {
+int  sigma_player_pause(void * phandle) {
 	if(phandle == player.get()) {
 	 	player->pause();
 	}else {
@@ -74,7 +74,7 @@ int  PausePlayer(void * phandle) {
 	 return 0;
 }
 
-int  ResumePlayer(void * phandle) {
+int  sigma_player_resume(void * phandle) {
 	if(phandle == player.get()) {
 	 	player->resume();
 	}else {
@@ -86,7 +86,7 @@ int  ResumePlayer(void * phandle) {
 }
 
 
-int FlushPlayer(void * phandle,unsigned long long ms) {
+int sigma_player_seek(void * phandle,unsigned long long ms) {
 	if(phandle == player.get()) {
 	 	player->seekTo(ms);
 	}else {
@@ -97,11 +97,23 @@ int FlushPlayer(void * phandle,unsigned long long ms) {
 	 return 0;
 }
 
-int GetPlayerDuration(void * phandle,unsigned long long * duration) {
+int sigma_player_getduration(void * phandle,unsigned long long * duration) {
 	 *duration = 0;
 	if(phandle == player.get()) {
 	 	player->getParameter(MEDIA_DURATION,(void *)duration);
 		utils_log(AV_DUMP_ERROR,"Duration %lld\n",*duration);
+	}else {
+		printf("handle pointer isn't correct\n");
+		return -1;
+	}
+	 
+	 return 0;
+}
+
+int sigma_player_installcb(void * phandle,callback_t cb)
+{
+	if(phandle == player.get()) {
+	 	player->setNotifyCallback(phandle,(notify_callback_t)cb);
 	}else {
 		printf("handle pointer isn't correct\n");
 		return -1;

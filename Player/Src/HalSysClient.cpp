@@ -15,9 +15,10 @@ static void sf_eos_callback(CallBackFuncsInfo_t* pCbInfo, void* pParam, void* pU
 	if ( client != NULL) {
         sp<HalSysClient> mClient = client.promote();
 
-		printf("get the EOS callback\n");
+		printf("get the EOS callback client %llx\n",pUserParam);
 
 		if (mClient != NULL) {
+			printf("notify the playback end\n");
             mClient->notifyListener_l(MEDIA_PLAYBACK_COMPLETE, 0, 0 ,NULL);
         }
     }
@@ -110,6 +111,7 @@ Error_Type_e HalSysClient::open(Video_CodingType_e video_format, Audio_CodingTyp
 
 	tEOSCbInfo.ptInst = mHandle;
 	tEOSCbInfo.InfoID = SIGM_EVENT_STREAM_END;
+	printf("Install callback %p\n",this);
 	ret = HalSys_Media_InstallCallback(&tEOSCbInfo,sf_eos_callback,this);
 
 	return ret;

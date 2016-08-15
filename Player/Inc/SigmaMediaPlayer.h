@@ -27,7 +27,7 @@ struct SigmaMediaPlayer : public ISigmaPlayer {
 private:
     SigmaMediaPlayerImpl *mPlayer;
 
-	Mutex               mNotifyLock;
+	//Mutex               mNotifyLock;
 	
     SigmaMediaPlayer(const SigmaMediaPlayer &); 
     SigmaMediaPlayer &operator=(const SigmaMediaPlayer &);
