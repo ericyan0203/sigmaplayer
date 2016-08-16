@@ -187,6 +187,7 @@ struct FfmpegSource : public MediaSource {
 				MP3,
 				AC3,
 				MPEG4,
+				EAC3,
 				OTHER
 		};
 

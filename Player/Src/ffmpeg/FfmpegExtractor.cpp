@@ -158,6 +158,9 @@ FfmpegSource::FfmpegSource(
 				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_AC3)) { 
 				         mType = AC3;
 						 isVideo = false;
+				}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_EAC3)) { 
+				         mType = EAC3;
+						 isVideo = false;
 				}
 
 #ifdef DEBUGFILE
@@ -1189,7 +1192,7 @@ int FfmpegExtractor::addTracks() {
 //avi extra data is useless. asf/wmv extra data is sps+pps.  mkv/mp4 is sps/pps
 										if(pFormatCtx->streams[uCount]->codec->extradata_invalid == 0 && 
 											pFormatCtx->streams[uCount]->codec->extradata_size >0 &&
-											strncasecmp(pFormatCtx->iformat->long_name,"raw H.264 video",15))
+											strncasecmp(pFormatCtx->iformat->long_name,"raw H.264 video",15)&& strncasecmp(pFormatCtx->iformat->name,"mpegts",6))
 											mIsVideoCodecSpecificDataValid = true;
 
 										printf("codecPrivateSize video= %d\n",mVideoCodecSpecificDataSize);
@@ -1202,7 +1205,7 @@ int FfmpegExtractor::addTracks() {
 										printf("FFMPEG VIDEO HEVC size %x invalid %x\n",pFormatCtx->streams[uCount]->codec->extradata_size,pFormatCtx->streams[uCount]->codec->extradata_invalid);
 										if(pFormatCtx->streams[uCount]->codec->extradata_invalid == 0 && 
 											pFormatCtx->streams[uCount]->codec->extradata_size >0 &&
-											strncasecmp(pFormatCtx->iformat->long_name,"raw HEVC video",14))
+											(strncasecmp(pFormatCtx->iformat->long_name,"raw HEVC video",14) && strncasecmp(pFormatCtx->iformat->name,"mpegts",6)))
 											mIsVideoCodecSpecificDataValid = true;
 										
 										printf("codecPrivateSize video= %d\n",mVideoCodecSpecificDataSize);
@@ -1371,7 +1374,17 @@ int FfmpegExtractor::addTracks() {
 												memcpy(&mAudioCodecSpecificData[0],pFormatCtx->streams[uCount]->codec->extradata,pFormatCtx->streams[uCount]->codec->extradata_size);
 												mIsAudioCodecSpecificDataValid = true;
 										}
-
+										break;
+								case    AV_CODEC_ID_EAC3:
+									    meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_AUDIO_EAC3);
+										bAudioCodecSupported = true;
+										printf("FFMPEG AUDIO EAC3\n");
+										printf("codecPrivateSize audio= %d\n",pFormatCtx->streams[uCount]->codec->extradata_size);
+										mAudioCodecSpecificDataSize = pFormatCtx->streams[uCount]->codec->extradata_size;
+										if(mAudioCodecSpecificDataSize > 0){
+												memcpy(&mAudioCodecSpecificData[0],pFormatCtx->streams[uCount]->codec->extradata,pFormatCtx->streams[uCount]->codec->extradata_size);
+												mIsAudioCodecSpecificDataValid = true;
+										}
 										break;
 #if 0
 								case    AV_CODEC_ID_AAC :

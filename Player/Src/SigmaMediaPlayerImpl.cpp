@@ -74,6 +74,8 @@ static int32_t convertToSigmaFormat(const char * mime) {
 		ret = (int32_t)SIGM_AUDIO_CodingMPEG;
 	}else if(!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_MPEG)){ 
 		ret = (int32_t)SIGM_AUDIO_CodingMP3;
+	}else if (!strcasecmp(mime, MEDIA_MIMETYPE_AUDIO_EAC3)) {
+		ret = (int32_t)SIGM_AUDIO_CodingAC3Plus;
 	}
 	return ret;
 }

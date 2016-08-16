@@ -13,7 +13,7 @@
 //#define FILE_PATH 	"d://halsys/RV9_AAC.rmvb"
 //#define FILE_PATH 	"d://halsys/HEVC_AAC.mp4"
 //#define FILE_PATH 	"d://halsys/HEVC.hevc"
-#define FILE_PATH 	"d://halsys/bbb_2160p30_VP9.ivf"
+#define FILE_PATH 	"d://halsys/150528_1_t2_642_HBBTV_EPG_5_service.ts"
 #define SERVER_IP 	"10.86.62.6"
 #define SERVER_PORT 52116
 #endif
