@@ -8,7 +8,12 @@
 #include <stdio.h>
 
 #if 1
-#define FILE_PATH 	"d://[H.264 BP][AC3]-1.mkv"//"d://[H.264 BP][AC3]-1.mkv"//"d://BBC.mp4"//"d://[H.264 HP][AAC].mp4" //"d://halsys.avc" //[H.264 BP][AC3]-1.mkv
+//#define FILE_PATH 	"d://[H.264 BP][AC3]-1.mkv"//"d://[H.264 BP][AC3]-1.mkv"//"d://BBC.mp4"//"d://[H.264 HP][AAC].mp4" //"d://halsys.avc" //[H.264 BP][AC3]-1.mkv
+//#define FILE_PATH 	"d://halsys/bbb_2160p30_VP9.webm"
+//#define FILE_PATH 	"d://halsys/RV9_AAC.rmvb"
+//#define FILE_PATH 	"d://halsys/HEVC_AAC.mp4"
+//#define FILE_PATH 	"d://halsys/HEVC.hevc"
+#define FILE_PATH 	"d://halsys/bbb_2160p30_VP9.ivf"
 #define SERVER_IP 	"10.86.62.6"
 #define SERVER_PORT 52116
 #endif
@@ -30,7 +35,7 @@ int main(int argc, char* argv[])
 
 	if(1) {
 #ifdef WIN32
-				Sleep(250000);
+				Sleep(30000);
 #else
 			 	usleep(50 * US_PER_MS);
 #endif

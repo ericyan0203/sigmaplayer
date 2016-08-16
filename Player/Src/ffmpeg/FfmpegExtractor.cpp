@@ -267,7 +267,7 @@ bool FfmpegSource::threadLoop()
 		
     mBuffer->meta_data()->findInt64(kKeyTime, &timeUs);
 
-	//utils_log(AV_DUMP_ERROR,"%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
+	utils_log(AV_DUMP_ERROR,"%s pts %lld  size %d\n",isVideo?"Video":"Audio",timeUs,mBuffer->range_length());
 #ifdef DEBUGFILE
 	if(isVideo) {
 		fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
@@ -453,9 +453,9 @@ FfmpegExtractor::~FfmpegExtractor() {
 		}
 
 		//close the stream
-		printf("av_close_input_file...\n");
+		printf("avformat_close_input...\n");
 		if(pFormatCtx){
-				av_close_input_file(pFormatCtx);
+				avformat_close_input(&pFormatCtx);
 				pFormatCtx = NULL;
 		}
 
@@ -1195,6 +1195,26 @@ int FfmpegExtractor::addTracks() {
 										printf("codecPrivateSize video= %d\n",mVideoCodecSpecificDataSize);
 										bVideoCodecSupported = true;
 										break;
+								case	AV_CODEC_ID_HEVC :
+										meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_HEVC);
+										//meta->setData(kKeyAVCC, kTypeAVCC, pFormatCtx->streams[uCount]->codec->extradata, 
+										//	            pFormatCtx->streams[uCount]->codec->extradata_size); 			  
+										printf("FFMPEG VIDEO HEVC size %x invalid %x\n",pFormatCtx->streams[uCount]->codec->extradata_size,pFormatCtx->streams[uCount]->codec->extradata_invalid);
+										if(pFormatCtx->streams[uCount]->codec->extradata_invalid == 0 && 
+											pFormatCtx->streams[uCount]->codec->extradata_size >0 &&
+											strncasecmp(pFormatCtx->iformat->long_name,"raw HEVC video",14))
+											mIsVideoCodecSpecificDataValid = true;
+										
+										printf("codecPrivateSize video= %d\n",mVideoCodecSpecificDataSize);
+										bVideoCodecSupported = true;
+										break;
+								case	AV_CODEC_ID_VP9:
+										mFirstFrame  = 1;
+										meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_VP9);			  
+										printf("FFMPEG VIDEO VP9 size %x invalid %x\n",pFormatCtx->streams[uCount]->codec->extradata_size,pFormatCtx->streams[uCount]->codec->extradata_invalid);
+										printf("codecPrivateSize video= %d\n",mVideoCodecSpecificDataSize);
+										bVideoCodecSupported = true;
+										break;
 #if 0
 								case	AV_CODEC_ID_XVID:
 										meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_MPEG4);
@@ -1542,11 +1562,9 @@ int FfmpegExtractor::addTracks() {
 				      //compute the track duration the hard way-pts way 
 					  printf("Track %d duration is unknown trying for pts diff\n",uCount);
 
-                      duration =  computeTrackDuration(uCount);
+                     // duration =  computeTrackDuration(uCount);
 
-					  if(duration < 0){
-					      duration = 0;
-					  }
+					  duration = 0;
 				}
 				num = pFormatCtx->streams[uCount]->time_base.num;
 				den = pFormatCtx->streams[uCount]->time_base.den;
@@ -1620,8 +1638,13 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 				Mutex::Autolock autoLockV(mVListLock);
 				if(encVideoFrameList.size() <= 0){
 						if(mIsVsdTobeSent && mIsVideoCodecSpecificDataValid){
-								if((AV_CODEC_ID_H264 != pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id )/* ||
-									!strncasecmp(pFormatCtx->iformat->long_name,"raw H.264 video",15)*/) {
+								if(AV_CODEC_ID_H264 == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id) {
+									pFilter = av_bitstream_filter_init("h264_mp4toannexb");
+									printf("Init h264_mp4toannexb filter\n");
+								}else if(AV_CODEC_ID_HEVC == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id){
+									pFilter = av_bitstream_filter_init("hevc_mp4toannexb");
+									printf("Init hevc_mp4toannexb filter\n");
+								}else {
 									MediaBuffer *buffer = new MediaBuffer(mVideoCodecSpecificDataSize);
 								
 									if(mVideoCodecSpecificDataSize < 400){
@@ -1634,12 +1657,8 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 									mIsVsdTobeSent = false;
 									//set the frame time to 0
 									buffer->meta_data()->setInt64(kKeyTime, 0);
-
+                          
 									return buffer;
-								}else {
-								//	Mutex::Autolock autoLock(mLock);
-									pFilter = av_bitstream_filter_init("h264_mp4toannexb");
-									printf("Init h264_mp4toannexb filter\n");
 								}
 								mIsVsdTobeSent = false;
 						}
@@ -2102,7 +2121,30 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 							
 						}
 						#endif
-						else{
+						else if(AV_CODEC_ID_HEVC == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id){
+							if(pFilter != NULL){
+								AVPacket fpkt = encFrame;
+							//  Mutex::Autolock autoLock(mLock);
+                				int a = av_bitstream_filter_filter(pFilter,pFormatCtx->streams[mCurrentVideoTrack]->codec,
+											NULL, &fpkt.data, &fpkt.size,encFrame.data, encFrame.size, encFrame.flags & AV_PKT_FLAG_KEY);
+                				encFrame.data = fpkt.data;
+                				encFrame.size = fpkt.size;
+							}
+							memcpy(data,encFrame.data,encFrame.size);
+							buffer->set_range(0, encFrame.size);
+						}else if(AV_CODEC_ID_VP9 == pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id){
+							int offset = 0;
+
+							if(mFirstFrame == 1)
+							{
+                               offset += ffmpeg_vp9_write_header(data,pFormatCtx);
+							   mFirstFrame = 0;
+							}
+
+							offset += ffmpeg_vp9_write_packet(data+offset,pFormatCtx,&encFrame);
+							buffer->set_range(0, offset);
+							
+						}else {
 								//Nothing special needed
 								memcpy(data,encFrame.data,encFrame.size);
 								buffer->set_range(0, encFrame.size);         

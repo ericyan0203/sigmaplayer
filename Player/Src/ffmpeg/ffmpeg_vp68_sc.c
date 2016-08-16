@@ -130,4 +130,69 @@ int ffmpeg_vp68_append_slice(uint8_t * dataout,AVFormatContext *s,
 
 }
 
+int ffmpeg_vp9_write_header(uint8_t * dataout,AVFormatContext *s) {
+	AVCodecContext *ctx;
+    AVIOContext *pb = s->pb;
+	unsigned int offset = 0;
+	unsigned char * str = "DKIF";
+
+    if (s->nb_streams != 1) {
+        printf("Format supports only exactly one video stream\n");
+        return -1;
+    }
+    ctx = s->streams[0]->codec;
+    if (ctx->codec_type != AVMEDIA_TYPE_VIDEO ||
+        !(ctx->codec_id == AV_CODEC_ID_VP8 || ctx->codec_id == AV_CODEC_ID_VP9)) {
+       	printf("Currently only VP8 and VP9 are supported!\n");
+        return -1;
+    }
+	
+    memcpy(dataout+offset,str,4);
+	offset += 4;
+    GST_WRITE_UINT16_LE(dataout+offset, 0); // version
+    offset += 2;
+    GST_WRITE_UINT16_LE(dataout+offset, 32); // header length
+    offset += 2;
+	GST_WRITE_UINT32_LE(dataout+offset,ctx->codec_tag ? ctx->codec_tag : ctx->codec_id == AV_CODEC_ID_VP9 ? AV_RL32("VP90") : AV_RL32("VP80"));//?
+    offset += 4;
+    GST_WRITE_UINT16_LE(dataout+offset, ctx->width);
+	offset += 2;
+    GST_WRITE_UINT16_LE(dataout+offset, ctx->height);
+	offset += 2;
+    GST_WRITE_UINT32_LE(dataout+offset, s->streams[0]->time_base.den);
+	offset += 4;
+    GST_WRITE_UINT32_LE(dataout+offset, s->streams[0]->time_base.num);
+	offset += 4;
+    GST_WRITE_UINT64_LE(dataout+offset, 0);
+	offset += 8;
+
+    return offset;
+}
+
+int ffmpeg_vp9_write_packet(uint8_t * dataout,AVFormatContext *s,AVPacket *pkt) {
+    AVIOContext *pb = s->pb;
+	unsigned int offset = 0;
+	int64_t pts = 0;
+	int     num, den;
+	
+	pts = pkt->pts;
+	num = s->streams[pkt->stream_index]->time_base.num;
+	den = s->streams[pkt->stream_index]->time_base.den;
+	
+	if(pkt->pts != 0x8000000000000000LL){
+		pts = (int64_t)(((double)pts *((double)num/(double)den)) * (double)(1000000));
+		pts = (pts/1000)*90;
+	}
+	else{
+		pts = -1ULL;
+	}
+    GST_WRITE_UINT32_LE(dataout+offset, pkt->size);
+	offset += 4;
+    GST_WRITE_UINT64_LE(dataout+offset, pts);
+	offset += 8;
+    memcpy(dataout+offset,pkt->data, pkt->size);
+	offset += pkt->size;
+
+	return offset;
+}
 

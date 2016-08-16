@@ -23,6 +23,10 @@ int ffmpeg_vp68_append_picture_header(uint8_t * dataout,AVFormatContext *s,
 int ffmpeg_vp68_append_slice(uint8_t * dataout,AVFormatContext *s, 
 						AVStream *st, uint8_t* datain,uint32_t size);
 
+int ffmpeg_vp9_write_header(uint8_t * dataout,AVFormatContext *s);
+
+int ffmpeg_vp9_write_packet(uint8_t * dataout,AVFormatContext *s,AVPacket *pkt);
+
 
 #endif
 

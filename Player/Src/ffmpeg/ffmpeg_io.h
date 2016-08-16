@@ -257,6 +257,23 @@ typedef unsigned short uint16_t;
 
 
 
+#ifndef AV_RL32
+#   define AV_RL32(x)                                \
+    (((uint32_t)((const uint8_t*)(x))[3] << 24) |    \
+               (((const uint8_t*)(x))[2] << 16) |    \
+               (((const uint8_t*)(x))[1] <<  8) |    \
+                ((const uint8_t*)(x))[0])
+#endif
+
+#ifndef AV_WL32
+#   define AV_WL32(p, darg) do {                \
+        unsigned d = (darg);                    \
+        ((uint8_t*)(p))[0] = (d);               \
+        ((uint8_t*)(p))[1] = (d)>>8;            \
+        ((uint8_t*)(p))[2] = (d)>>16;           \
+        ((uint8_t*)(p))[3] = (d)>>24;           \
+    } while(0)
+#endif
 
 
 #endif
