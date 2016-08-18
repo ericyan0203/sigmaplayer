@@ -64,6 +64,7 @@ enum {
     kKeyIsCodecConfig     = 'conf',  // int32_t (bool)
     kKeyTime              = 'time',  // int64_t (usecs)
     kKeyDecodingTime      = 'decT',  // int64_t (decoding timestamp in usecs)
+    kKeyStartTime	      = 'staT',  //int64_t (start time)
     kKeyNTPTime           = 'ntpT',  // uint64_t (ntp-timestamp)
     kKeyTargetTime        = 'tarT',  // int64_t (usecs)
     kKeyDriftTime         = 'dftT',  // int64_t (usecs)

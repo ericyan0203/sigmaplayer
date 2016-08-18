@@ -201,6 +201,8 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
         }
     }
 
+	if(!mDurationUs) mDurationUs = 3000000ULL;
+
 #if 0
     sp<MetaData> fileMeta = mExtractor->getMetaData();
     if (fileMeta != NULL) {
@@ -592,6 +594,10 @@ Error_Type_e SigmaMediaPlayerImpl::getParameter(int key, void *reply) {
 		case MEDIA_DURATION:
 			*(uint64_t *)reply = mDurationUs/1000;
 			utils_log(AV_DUMP_ERROR,"duration %lld\n",mDurationUs);
+			break;
+		case MEDIA_CURRENTTIME:
+			if(haveVideo) mVideoTrack->getFormat()->findInt64(kKeyTargetTime,(int64_t *)reply);
+			else mAudioTrack->getFormat()->findInt64(kKeyTargetTime,(int64_t *)reply);
 			break;
 		default:
 			break;

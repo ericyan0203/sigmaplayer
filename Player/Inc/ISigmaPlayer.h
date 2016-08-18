@@ -24,6 +24,7 @@ enum media_event_type {
 enum media_parameter_key {
 	MEDIA_PARAMETER_NOP = 0,
 	MEDIA_DURATION,
+	MEDIA_CURRENTTIME,
 };
 
 class ISigmaPlayer: /*public VirtualLightRefBase*/public virtual RefBase ,public virtual Listener{

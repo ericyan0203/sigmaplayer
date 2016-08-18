@@ -98,7 +98,6 @@ int sigma_player_seek(void * phandle,unsigned long long ms) {
 }
 
 int sigma_player_getduration(void * phandle,unsigned long long * duration) {
-	 *duration = 0;
 	if(phandle == player.get()) {
 	 	player->getParameter(MEDIA_DURATION,(void *)duration);
 		utils_log(AV_DUMP_ERROR,"Duration %lld\n",*duration);
@@ -110,6 +109,18 @@ int sigma_player_getduration(void * phandle,unsigned long long * duration) {
 	 return 0;
 }
 
+int sigma_player_getcurrtime(void * phandle,unsigned long long * pCurrTime) {
+	if(phandle == player.get()) {
+	 	player->getParameter(MEDIA_CURRENTTIME,(void *)pCurrTime);
+		utils_log(AV_DUMP_ERROR,"curtime %lld\n",*pCurrTime);
+	}else {
+		printf("handle pointer isn't correct\n");
+		return -1;
+	}
+	 
+	 return 0;
+	
+}
 int sigma_player_installcb(void * phandle,callback_t cb)
 {
 	if(phandle == player.get()) {

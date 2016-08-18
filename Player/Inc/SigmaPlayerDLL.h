@@ -19,5 +19,7 @@ extern "C"  int  __declspec(dllexport)sigma_player_seek(void * phandle,unsigned 
 
 extern "C"  int  __declspec(dllexport)sigma_player_getduration(void * phandle,unsigned long long * duration);
 
+extern "C"  int  __declspec(dllexport) sigma_player_getcurrtime(void * phandle,unsigned long long * pCurrTime);
+
 extern "C" int  __declspec(dllexport)sigma_player_installcb(void * phandle,callback_t cb);
 #endif

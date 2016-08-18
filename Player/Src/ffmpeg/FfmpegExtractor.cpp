@@ -227,6 +227,7 @@ bool FfmpegSource::threadLoop()
 {
 	Error_Type_e err =  SIGM_ErrorNone;
 	int64_t timeUs;
+	int64_t startMs;
 #ifdef HALSYS
 	Media_Buffer_t buffer = {0};
 #endif
@@ -277,15 +278,18 @@ bool FfmpegSource::threadLoop()
 		fflush(mFile);
 	}
 #endif
-	
+
+	timeUs = (timeUs == -1)? -1:timeUs/1000; //change to ms
+
 #ifdef HALSYS
 	buffer.nAllocLen = size;
 	buffer.nOffset = mBuffer->range_offset();	
 	buffer.nSize = mBuffer->range_length();
-	buffer.nTimeStamp = (timeUs == -1)? -1:timeUs/1000;
+	buffer.nTimeStamp = timeUs;
 	buffer.nFilledLen =  mBuffer->range_length();
 	buffer.pBuffer = (trid_uint8 *)mBuffer->data();
-#endif	
+#endif
+
 	if( size == 0)
 	{
 		flags |= SIGM_BUFFERFLAG_ENDOFSTREAM;
@@ -309,7 +313,7 @@ bool FfmpegSource::threadLoop()
         }
     }
 	
-	if(err == SIGM_ErrorNone) {
+	if(SIGM_ErrorNone == err) {
 		mBuffer->release();
     	mBuffer = NULL;
 	}
@@ -320,6 +324,14 @@ bool FfmpegSource::threadLoop()
 	mBuffer->release();
     mBuffer = NULL;
 #endif
+	if(SIGM_ErrorNone == err){
+ 		sp<MetaData> meta = getFormat();
+		meta->setInt64(kKeyTargetTime,timeUs);
+
+		if(!meta->findInt64(kKeyStartTime,&startMs)) {
+			meta->setInt64(kKeyStartTime,timeUs);
+		}
+	}
 	//else  keep the back up the data
 	Sleep(5);
 	return true;

@@ -13,7 +13,8 @@
 //#define FILE_PATH 	"d://halsys/RV9_AAC.rmvb"
 //#define FILE_PATH 	"d://halsys/HEVC_AAC.mp4"
 //#define FILE_PATH 	"d://halsys/HEVC.hevc"
-#define FILE_PATH 	"d://halsys/150528_1_t2_642_HBBTV_EPG_5_service.ts"
+//#define FILE_PATH 	"d://halsys/150528_1_t2_642_HBBTV_EPG_5_service.ts"
+#define FILE_PATH "d://BBC.mp4"
 #define SERVER_IP 	"10.86.62.6"
 #define SERVER_PORT 52116
 #endif
@@ -23,7 +24,9 @@ static void callback(void* cookie, int msg, int ext1, int ext2, unsigned int *ob
 }
 int main(int argc, char* argv[])
 {
-	void * player = NULL;	
+	void * player = NULL;
+	unsigned long long curtime = 0;
+	unsigned long long duration = 0;
 
 	sigma_player_init(SERVER_IP,SERVER_PORT);
 	
@@ -33,12 +36,15 @@ int main(int argc, char* argv[])
 
 	sigma_player_installcb(player,callback);
 
-	if(1) {
+	while(1) {
 #ifdef WIN32
-				Sleep(30000);
+				Sleep(3000);
 #else
 			 	usleep(50 * US_PER_MS);
 #endif
+		sigma_player_getcurrtime(player,&curtime);
+		sigma_player_getduration(player,&duration);
+		printf("cur time %lld ms duration %lld ms\n",curtime,duration);
 	}
 
 	sigma_player_destroy(player);

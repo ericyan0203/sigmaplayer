@@ -218,6 +218,7 @@ struct FfmpegSource : public MediaSource {
 		uint32_t  mStatus;
 		Condition mCondition;
 		MediaSource::ReadOptions mOptions;
+
 		//virtual ~FfmpegSource(){};
 		FfmpegSource(const FfmpegSource &);
 		FfmpegSource &operator=(const FfmpegSource &);
