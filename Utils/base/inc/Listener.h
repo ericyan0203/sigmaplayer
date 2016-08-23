@@ -14,22 +14,10 @@ public:
     Listener(){};                                                     \
     virtual ~Listener(){}; 
 
-	 void   setNotifyCallback(
-            void* cookie, notify_callback_t notifyFunc) {
-        Mutex::Autolock autoLock(mNotifyLock);
-        mCookie = cookie; mNotify = notifyFunc;
-    }
+	virtual void  setNotifyCallback(void* cookie, notify_callback_t notifyFunc) = 0;
 
-    void   sendEvent(int msg, int ext1 = 0, int ext2 = 0,
-                          unsigned int *obj=NULL) {
-        Mutex::Autolock autoLock(mNotifyLock);
-        if (mNotify) mNotify(mCookie, msg, ext1, ext2, obj);
-    }
+    virtual void  sendEvent(int msg, int ext1 = 0, int ext2 = 0,unsigned int *obj=NULL) = 0;	
 
-private:	
-    Mutex               mNotifyLock;
-    void*               mCookie;
-    notify_callback_t   mNotify;
 };
 
 #endif

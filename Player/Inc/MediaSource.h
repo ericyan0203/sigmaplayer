@@ -12,6 +12,7 @@
 #include "StrongPointer.h"
 #include "MediaBuffer.h"
 #include "Threads.h"
+#include "Listener.h"
 
 struct MediaSource : public virtual RefBase ,public virtual Thread {
     MediaSource();
@@ -73,6 +74,10 @@ struct MediaSource : public virtual RefBase ,public virtual Thread {
         SeekMode mSeekMode;
     };
 
+	virtual void setListener(const wp<Listener> &listener) {
+		mListener = listener;
+	}
+
     // Causes this source to suspend pulling data from its upstream source
     // until a subsequent read-with-seek. Currently only supported by
     // OMXCodec.
@@ -103,6 +108,8 @@ protected:
 private:
     MediaSource(const MediaSource &);
     MediaSource &operator=(const MediaSource &);
+
+	wp<Listener> mListener;
 };
 
 

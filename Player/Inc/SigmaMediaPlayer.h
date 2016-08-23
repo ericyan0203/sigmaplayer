@@ -4,7 +4,7 @@
 #include "ISigmaPlayer.h"
 #include "SigmaMediaPlayerImpl.h"
 
-struct SigmaMediaPlayer : public ISigmaPlayer {
+struct SigmaMediaPlayer : public ISigmaPlayer ,public virtual Listener{
     SigmaMediaPlayer();
 	virtual ~SigmaMediaPlayer();
 #if 0
@@ -23,9 +23,24 @@ struct SigmaMediaPlayer : public ISigmaPlayer {
     virtual Error_Type_e reset();
     virtual Error_Type_e setParameter(int key, const void * request);
     virtual Error_Type_e getParameter(int key, void *reply);
+
+	virtual void   setNotifyCallback(
+            void* cookie, notify_callback_t notifyFunc) {
+        Mutex::Autolock autoLock(mNotifyLock);
+        mCookie = cookie; mNotify = notifyFunc;
+    }
+
+    virtual void   sendEvent(int msg, int ext1 = 0, int ext2 = 0,
+                          unsigned int *obj=NULL) {
+        Mutex::Autolock autoLock(mNotifyLock);
+        if (mNotify) mNotify(mCookie, msg, ext1, ext2, obj);
+    } 
 	
 private:
     SigmaMediaPlayerImpl *mPlayer;
+	Mutex               mNotifyLock;
+    void*               mCookie;
+    notify_callback_t   mNotify;
 
 	//Mutex               mNotifyLock;
 	

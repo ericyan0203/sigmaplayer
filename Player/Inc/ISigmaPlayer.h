@@ -27,7 +27,7 @@ enum media_parameter_key {
 	MEDIA_CURRENTTIME,
 };
 
-class ISigmaPlayer: /*public VirtualLightRefBase*/public virtual RefBase ,public virtual Listener{
+class ISigmaPlayer: /*public VirtualLightRefBase*/public virtual RefBase {
 public:
     ISigmaPlayer(){};                                                     \
     virtual ~ISigmaPlayer(){}; 

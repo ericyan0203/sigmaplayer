@@ -306,10 +306,10 @@ bool FfmpegSource::threadLoop()
 	buffer.nFlags = flags;
 
 	 if (mListener != NULL) {
-        sp<HalSysClient> listener = mListener.promote();
+        sp<Listener> listener = mListener.promote();
 
         if (listener != NULL) {
-            err = listener->handleBuffer(&buffer);
+            err = listener->sendEvent(MEDIA_BUFFERING_UPDATE,0,0,&buffer);
         }
     }
 	
@@ -324,7 +324,7 @@ bool FfmpegSource::threadLoop()
 	mBuffer->release();
     mBuffer = NULL;
 #endif
-	if(SIGM_ErrorNone == err){
+	if(SIGM_ErrorNone == err && size != 0){
  		sp<MetaData> meta = getFormat();
 		meta->setInt64(kKeyTargetTime,timeUs);
 
@@ -343,9 +343,6 @@ int FfmpegSource::requestExitAndWait() {
 	return ret;
 }
 
-void FfmpegSource::setListener(const wp<HalSysClient> &listener) {
-	mListener = listener;
-}
 
 Error_Type_e FfmpegSource::pause() {
 	Mutex::Autolock autoLock(mLock);
@@ -1262,7 +1259,13 @@ int FfmpegExtractor::addTracks() {
 								case	AV_CODEC_ID_VC1:
  		                                printf("FFMPEG VIDEO CODEC_ID_WMV\n");
 									    pFormatCtx->VC1Data.firstFrame  = 1;
-									    meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_WMV1);		
+									    meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_WMV1);
+										if(strncasecmp(pFormatCtx->iformat->long_name,"raw VC-1",8)){
+											mIsVsdTobeSent = true;
+										}else {
+											mIsVsdTobeSent = false; //raw data
+										}
+
 									    /* Indicate that we need to insert startcode headers */
 									    printf("codecPrivateSize video= %d\n",pFormatCtx->streams[uCount]->codec->extradata_size);
 									    bVideoCodecSupported = true;
@@ -2006,14 +2009,15 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 								AVCodecContext *codec_data = pFormatCtx->streams[mCurrentVideoTrack]->codec;		
 								VC1Frame  *pvc1Frm = &(pFormatCtx->VC1Data);			 
 								AVPacket *pkt = &encFrame; //for backward compatability
-								unsigned int  tempsize =encFrame.size, headersize =0; ; 
+								unsigned int  tempsize = encFrame.size, headersize =0; ; 
 								int offset        = -1;
 
 								//LOGI ("\n **********************CODEC_ID_VC1CODEC_ID_VC1  1111111111111 \n");
 
 								pkt->size = encFrame.size;
-								if (pvc1Frm->firstFrame == 1)
-								{
+								if(true == mIsVsdTobeSent) {
+									if (pvc1Frm->firstFrame == 1)
+									{
 										// LOGI ("\n **********************CODEC_ID_VC1CODEC_ID_VC1  222222222222 \n");
 
 										if((codec_data->extradata_size <= 5)||(codec_data->extradata == NULL))
@@ -2040,9 +2044,9 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 										}	   
 										//LOGI ("\n **********************CODEC_ID_VC1CODEC_ID_VC1  33333333333333 \n");
 
-								}
-								if(pFormatCtx->has_startcode != 1)
-								{
+									}
+									if(pFormatCtx->has_startcode != 1)
+									{
 										uint8_t seqcode[] = {0x00,0x00,0x01,0x0D};
 										if((pkt->flags &AV_PKT_FLAG_KEY)&&(pvc1Frm->firstFrame != 1))
 										{
@@ -2083,13 +2087,13 @@ MediaBuffer * FfmpegExtractor::getNextEncFrame(int trackIndex, int64_t seekTime,
 												 buffer[1] = 0x00;
 												 buffer[2] = 0x01;
 												 buffer[3] = 0x0D; */			 
-								}
+									}
 								//copy frame data 	
 								// 	              LOGI ("\n **********************CODEC_ID_VC1CODEC_ID_VC1  dddddddddddddd \n");
-
-								memcpy(data,encFrame.data,encFrame.size);			
-								buffer->set_range(0, tempsize);
-								// LOGI ("\n **********************CODEC_ID_VC1CODEC_ID_VC1  eeeeeeeeeeeeeee \n"); 
+							}
+							memcpy(data,encFrame.data,encFrame.size);			
+							buffer->set_range(0, tempsize);
+							// LOGI ("\n **********************CODEC_ID_VC1CODEC_ID_VC1  eeeeeeeeeeeeeee \n"); 
 						}
 						else if(( pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id ==  AV_CODEC_ID_RV40) || (( pFormatCtx->streams[mCurrentVideoTrack]->codec->codec_id ==  AV_CODEC_ID_RV30))) {
                             VSliceInfo info;

@@ -15,7 +15,7 @@ typedef enum {
 	HDMI,
 }HalSysType;
 
-class HalSysClient: public virtual RefBase {
+class HalSysClient: public virtual RefBase,public virtual Listener {
 public:
    	HalSysClient(HalSysType eType);
     virtual ~HalSysClient();
@@ -32,15 +32,20 @@ public:
 	Error_Type_e resume();
 	Error_Type_e flush(int64_t timeMs);
 
-	Error_Type_e handleBuffer(Media_Buffer_t *buffer);
+	void setListener(const wp<Listener> &listener);
+	void notifyListener_l(int msg, int ext1, int ext2 ,unsigned int * obj);
 
-	void HalSysClient::setListener(const wp<Listener> &listener);
-	void HalSysClient::notifyListener_l(int msg, int ext1, int ext2 ,unsigned int * obj);
+	virtual void  setNotifyCallback(void* cookie, notify_callback_t notifyFunc) {}
+
+    virtual void  sendEvent(int msg, int ext1 = 0, int ext2 = 0,unsigned int *obj=NULL) {
+		 handleBuffer((Media_Buffer_t *)obj);
+	}
 	
 private:
     HalSysClient(const HalSysClient &);
     HalSysClient &operator=(const HalSysClient &);
 
+	Error_Type_e handleBuffer(Media_Buffer_t *buffer);
 	HalSysType mType;
 	Video_CodingType_e mVideoFormat;
 	Audio_CodingType_e mAudioFormat;

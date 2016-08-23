@@ -409,14 +409,16 @@ Error_Type_e SigmaMediaPlayerImpl::play_l() {
 	}
 
 	if(haveVideo) {
-		sp<FfmpegSource> source = dynamic_cast<FfmpegSource *>(mVideoTrack.get());
-		source->setListener(mClient);
+		//sp<FfmpegSource> source = dynamic_cast<FfmpegSource *>(mVideoTrack.get());
+		wp<Listener> listener = dynamic_cast<Listener *>(mClient.get());
+		mVideoTrack->setListener(listener);
 		mVideoTrack->start(NULL);
 	}
 	
 	if(haveAudio) {
-		sp<FfmpegSource> source = dynamic_cast<FfmpegSource *>(mAudioTrack.get());
-		source->setListener(mClient);
+		//sp<FfmpegSource> source = dynamic_cast<FfmpegSource *>(mAudioTrack.get());
+		wp<Listener> listener = dynamic_cast<Listener *>(mClient.get());
+		mAudioTrack->setListener(listener);
 		mAudioTrack->start(NULL);
 	}
 	

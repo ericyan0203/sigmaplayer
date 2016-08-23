@@ -20,7 +20,7 @@
 #include "SIGM_Types.h"
 
 #define INITIAL_STREAM_BUF_SIZE 512 * 1024
-//#define DEBUGFILE "./ffmpeg.es"
+#define DEBUGFILE "./ffmpeg.es"
 
 #ifdef __cplusplus  
 extern "C"   
@@ -161,8 +161,6 @@ struct FfmpegSource : public MediaSource {
 		virtual bool threadLoop();
 
 		virtual int  requestExitAndWait();
-	
-		void setListener(const wp<HalSysClient> &listener);
 
 		virtual Error_Type_e pause();
 
@@ -209,8 +207,7 @@ struct FfmpegSource : public MediaSource {
 		
 		MediaBuffer *mBuffer;
 		bool bEOS;
-		
-		wp<HalSysClient> mListener;
+	
 #ifdef DEBUGFILE
 		FILE * mFile;
 #endif
