@@ -19,7 +19,7 @@
 #include "SIGM_Types.h"
 
 #define INITIAL_STREAM_BUF_SIZE 512 * 1024
-#define DEBUGFILE "./haltest.es"
+//#define DEBUGFILE "./haltest.es"
 
 class String8;
 

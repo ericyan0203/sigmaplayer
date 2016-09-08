@@ -5,7 +5,6 @@ Error_Type_e HalSys_HDMI_Initialize(void) {
 	halsys_ret ret;
 	ret = halsys_hdmi_initialize();
 	return (Error_Type_e)(ret.common_ret.ret);
-
 }
 
 Error_Type_e HalSys_HDMI_Deinit(void) {

@@ -22,6 +22,7 @@ Error_Type_e HalSys_DigitalTV_Start(sigma_handle_t ptInst, Channel_Config_t* ptC
 
 Error_Type_e HalSys_DigitalTV_Stop(sigma_handle_t ptInst);
 
+#if 0
 Error_Type_e HalSys_DigitalTV_RequestSecFilter(sigma_handle_t ptInst, Filter_Config_t* ptFileterConfig, filter_ptr* ptFilter);
 
 // Error_Type_e HalSys_DigitalTV_InstallDataCallback(filter_ptr ptFilter, FilterDataCBFunction_t callback);
@@ -49,6 +50,7 @@ Error_Type_e HalSys_DigitalTV_GetParameter(sigma_handle_t ptInst, SIGM_PARAMETER
 Error_Type_e HalSys_DigitalTV_InstallCallback(CallBackFuncsInfo_t* const cbInfo, sigm_callback_t pInfoRoutine, void* pUserParam);
 
 Error_Type_e HalSys_DigitalTV_UnInstallCallback(CallBackFuncsInfo_t* ptCallbackInfo);
+#endif
 
 #ifdef __cplusplus
 }

@@ -172,6 +172,33 @@ typedef struct HDMI_START_PARAMETER {
 
 #pragma pack(push)  
 #pragma pack(1)
+typedef struct DTV_OPEN_PARAMETER { 
+	unsigned int demux_input;
+	unsigned int demux_cipath;
+}dtv_open_param;
+#pragma pack(pop)
+
+#pragma pack(push)  
+#pragma pack(1)
+typedef struct DTV_START_PARAMETER {
+    unsigned int instance;
+    unsigned int video_pid;
+    unsigned int video_format;
+    unsigned int video_sink;
+    unsigned int video_display_mode;
+    unsigned int video_stream_mode;
+    unsigned int audio_pid;
+    unsigned int audio_format;
+    unsigned int audio_sink;
+    unsigned int subtitle_pid;
+    unsigned int teletext_pid;
+    unsigned int pcr_pid;
+    unsigned int low_latency;
+}dtv_start_param;
+#pragma pack(pop)
+
+#pragma pack(push)  
+#pragma pack(1)
 typedef struct HALSYS_RETURN {
     unsigned int size;
     union {
@@ -241,6 +268,18 @@ halsys_ret halsys_hdmi_close(halsys_common_param* arg);
 halsys_ret halsys_hdmi_start(hdmi_start_param* arg);
 
 halsys_ret halsys_hdmi_stop(halsys_common_param* arg);
+
+halsys_ret halsys_dtv_initialize(void);
+
+halsys_ret halsys_dtv_deinit(void);
+
+halsys_ret halsys_dtv_open(dtv_open_param* arg);
+
+halsys_ret halsys_dtv_close(halsys_common_param* arg);
+
+halsys_ret halsys_dtv_start(dtv_start_param* arg);
+
+halsys_ret halsys_dtv_stop(halsys_common_param* arg);
 
 #ifdef __cplusplus
 }

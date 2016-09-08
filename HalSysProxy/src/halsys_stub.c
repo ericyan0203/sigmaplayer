@@ -245,3 +245,33 @@ halsys_ret halsys_hdmi_stop(halsys_common_param* arg) {
 	unsigned int length = sizeof(halsys_packet_data)+ sizeof(halsys_common_param);
 	return halsys_param_fixed_stub(ROUTINE,(void *)arg, length);
 }
+
+halsys_ret halsys_dtv_initialize(void) {
+	unsigned int length = sizeof(halsys_packet_data);
+	return halsys_param_fixed_stub(ROUTINE,NULL, length);
+}
+
+halsys_ret halsys_dtv_deinit(void) {
+	unsigned int length = sizeof(halsys_packet_data);
+	return halsys_param_fixed_stub(ROUTINE,NULL, length);
+}
+
+halsys_ret halsys_dtv_open(dtv_open_param* arg) {
+	unsigned int length = sizeof(dtv_open_param) + sizeof(halsys_packet_data);
+	return halsys_param_fixed_stub(ROUTINE,(void *)arg, length);
+}
+
+halsys_ret halsys_dtv_close(halsys_common_param* arg) {
+	unsigned int length = sizeof(halsys_packet_data)+ sizeof(halsys_common_param);
+	return halsys_param_fixed_stub(ROUTINE,(void *)arg, length);
+}
+
+halsys_ret halsys_dtv_start(dtv_start_param* arg) {
+	unsigned int length = sizeof(dtv_start_param) + sizeof(halsys_packet_data);
+	return halsys_param_fixed_stub(ROUTINE,(void *)arg, length);
+}
+
+halsys_ret halsys_dtv_stop(halsys_common_param* arg) {
+	unsigned int length = sizeof(halsys_packet_data)+ sizeof(halsys_common_param);
+	return halsys_param_fixed_stub(ROUTINE,(void *)arg, length);
+}

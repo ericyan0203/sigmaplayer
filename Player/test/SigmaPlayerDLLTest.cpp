@@ -29,13 +29,15 @@ int main(int argc, char* argv[])
 	unsigned long long curtime = 0;
 	unsigned long long duration = 0;
 
-	sigma_player_init(SERVER_IP,SERVER_PORT);
+	halsys_player_init(SERVER_IP,SERVER_PORT);
 	
-	sigma_player_create(FILE_PATH,&player);
+	halsys_media_player_create(FILE_PATH,&player);
 
 	printf("create player %p\n",player);
 
-	sigma_player_installcb(player,callback);
+	halsys_media_player_installcb(player,callback);
+
+	halsys_media_player_start(player);
 
 	while(1) {
 #ifdef WIN32
@@ -43,12 +45,13 @@ int main(int argc, char* argv[])
 #else
 			 	usleep(50 * US_PER_MS);
 #endif
-		sigma_player_getcurrtime(player,&curtime);
-		sigma_player_getduration(player,&duration);
+		halsys_media_player_getcurrtime(player,&curtime);
+		halsys_media_player_getduration(player,&duration);
 		printf("cur time %lld ms duration %lld ms\n",curtime,duration);
 	}
 
-	sigma_player_destroy(player);
-	sigma_player_deinit();
+	halsys_media_player_stop(player);
+	halsys_media_player_destroy(player);
+	halsys_player_deinit();
 	return 0;
 }

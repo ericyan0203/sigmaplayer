@@ -45,7 +45,6 @@ typedef enum Demux_CIPath {
 
 typedef struct VIDEO_DTV_CONFIG {
     trid_uint32 nVideoPID;
-    trid_uint32 nPcrPID;
     Video_CodingType_e eVideoFormat;
     Video_Sink_e eVideoSink;
     Video_DisplayMode_e eVideoDisplayMode;
@@ -54,7 +53,6 @@ typedef struct VIDEO_DTV_CONFIG {
 
 typedef struct AUDIO_DTV_CONFIG {
     trid_uint32 nAudioPID;
-    trid_uint32 nPcrPID;
     Audio_CodingType_e eAudioFormat;
     trid_uint32 eSoundSink;
 } DTV_AudioConfig_t, *pDTV_AudioConfig_t;
@@ -73,6 +71,7 @@ typedef struct CHANNEL_CONFIG {
     DTV_AudioConfig_t tAudioConfig;
     Subtitle_Config_t tSubtitleConfig;
     Teletext_Config_t tTeletextConfig;
+	trid_uint32 nPcrPID;
     trid_bool bLowlatency;
 } Channel_Config_t, *pChannel_Config_t;
 
