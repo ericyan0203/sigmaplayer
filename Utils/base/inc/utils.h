@@ -61,4 +61,6 @@ typedef unsigned int uid_t;
 			 	
 void utils_init(const char * path = NULL);
 void utils_deinit();
+int utils_strncasecmp(const char *a, const char *b, size_t n);
+
 #endif 

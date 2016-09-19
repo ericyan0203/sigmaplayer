@@ -124,7 +124,11 @@ bool MetaData::findInt64(uint32_t key, int64_t *value) {
 
     if(size != sizeof(*value))
 		printf("findInt64 size doesn't match\n");
-
+	
+	if(NULL == data) {
+		printf("data is NULL\n");
+		return false;
+	}
     *value = *(int64_t *)data;
 
     return true;

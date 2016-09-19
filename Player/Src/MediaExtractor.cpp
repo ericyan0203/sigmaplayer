@@ -18,7 +18,8 @@
 
 
 #include "FfmpegExtractor.h"
-#include "VESExtractor.h"
+#include "VideoESExtractor.h"
+#include "MultipleFilesExtractor.h"
 #include "DataSource.h"
 #include "MediaDefs.h"
 #include "MediaExtractor.h"
@@ -58,6 +59,8 @@ sp<MediaExtractor> MediaExtractor::Create(
 	    ret = new FfmpegExtractor(source);
 	}else if(!strcasecmp(mime,MEDIA_MIMETYPE_CONTAINER_VES)){
 	    ret = new VideoESExtractor(source);
+	}else if(!strcasecmp(mime,MEDIA_MIMETYPE_CONTAINER_ESFILES)){
+		ret = new MultipleVideoESExtractor(source);
 	}
 	return ret;
 }// namespace android

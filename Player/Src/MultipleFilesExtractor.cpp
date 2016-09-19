@@ -15,7 +15,7 @@
  */
 
 
-#include "VESExtractor.h"
+#include "MultipleFilesExtractor.h"
 #include "DataSource.h"
 #include "MediaBuffer.h"
 #include "MediaSource.h"
@@ -28,8 +28,12 @@
 
 #include <ctype.h>
 #include <stdio.h>
+#include <time.h>
 #include <string.h>
-
+#include <sys/stat.h>
+#if 0
+#include <dirent.h>
+#endif
 #include "SIGM_Media_API.h"
 
 #ifdef WIN32
@@ -41,10 +45,20 @@
 #define FUN_START
 #define FUN_END
 
+#define		H264_SUFFIX 	"h264"
+#define 	AVC_SUFFIX  	"avc"
+#define 	H265_SUFFIX		"h265"
+#define 	HEVC_SUFFIX     "hevc"
+#define 	VC1_SUFFIX      "vc1"
+#define 	VP8_SUFFIX      "vp8"
+#define 	VP9_SUFFIX      "vp9"
+
 #define MAX_BUFFER_LEN (1024*1024)
 #define DATA_UNIT_SIZE 	(1024 * 512)
+#define MAX_LINE 	1024
+static char buf[MAX_BUFFER_LEN] = {0};
 
-char buf[MAX_BUFFER_LEN] = {0};
+const char * prefix_list[] = {"640_480","720_576","1280_720","1920_1080","3840_2160"};
 
 ////////////////////////////////////////////////////////////////////////////////
 static void hexdump(const void *_data, size_t size) {
@@ -86,89 +100,54 @@ static void hexdump(const void *_data, size_t size) {
 	}
 }
 
-static Video_CodingType_e convertType(unsigned int type){
-	Video_CodingType_e eType = SIGM_VIDEO_CodingUnused;
-	switch(type){
-		case 0x10:
-		case 0x11:
-			eType = SIGM_VIDEO_CodingVC1;
-			break;
-		case 0x28:
-		case 0x29:
-			eType = SIGM_VIDEO_CodingRV;
-			break;
-		case 0x36:
-			eType = SIGM_VIDEO_CodingVP6;
-			break;
-		case 0x37:
-			eType = SIGM_VIDEO_CodingVP8;
-			break;
-		case 0x38:
-		case 0x39:
-			eType = SIGM_VIDEO_CodingMPEG4;
-			break;
-		default:
-			break;
-	}
-	return eType;
-}
-
-static int ves_find_stream_info(FILE * fp, unsigned int * vType){	
-	int size = MAX_BUFFER_LEN;
-	int i = 0, type = 0;
-	uint32_t code = -1;
+static int ves_find_stream_info(const char * fileName, unsigned int * vType){	
+	const char *ext;
+	int namelen = 0;
+	int i =0;
+	int match = 0;
 	
-	int ret = -1;
-
-	if(fp == NULL) {
+	if(fileName == NULL) {
+		*vType = SIGM_VIDEO_CodingUnused;
 		return -1;
 	}
-
-
-	ret = _fseeki64(fp,0,SEEK_END);
-    if(ret >= 0) 
-		size = ftell(fp);
 	
-	if(size > MAX_BUFFER_LEN) size = MAX_BUFFER_LEN;
-
-	_fseeki64(fp,0L, SEEK_SET);
-	//rewind(fp);
-
-	ret  = fread((void *)buf, 1, size, fp);
-
-	if(ret != size){
-		ret = -1;
-		return ret;
+	for(i = 0; i< sizeof(prefix_list)/sizeof(const char *); i++) {
+    	if (strncmp(prefix_list[i], fileName, strlen(prefix_list[i])) == 0) {
+        	match = 1;
+			break;
+    	}
 	}
-	*vType = SIGM_VIDEO_CodingUnused;
-    for (i = 0; i < size; i++) {
-		code = (code << 8) + buf[i];
-        if ((code & 0xffffff00) == 0x100) {
-			type = code & 0xFF;
-			if( 0x31 != type) continue;
-			if(size-i>12) {
-				if(0x4e == buf[i+3] && 0x58 == buf[i+9] && 0x50 == buf[i+12]){
-					if( 0x36 == buf[i+5]|| 0x10 == buf[i+5] || 0x11 == buf[i+5] || 0x28 == buf[i+5] || 0x29 == buf[i+5] || 0x37 == buf[i+5] || 0x38 == buf[i+5]){
-						type = buf[i+5];
-						//both vp6 and vp8 are using 0x36
-						if(44 == buf[i+4]) type +=1; //change vp8 to 0x37
-						*vType = (unsigned int)convertType(type);
-						return 0;
-					}
-					else {
-						printf("unknown type %x\n",buf[i+5]);
-						return -1;
-					}
-				}
-			}
-			else 
-				return -1;
-        }
+
+	if(!match) {
+		*vType = SIGM_VIDEO_CodingUnused;
+		return -1;
+	}
+	//check the stream type by suffix
+	ext = strrchr(fileName, '.');
+    if (ext) {
+		namelen = strlen(ext+1)-1; //no end '0x2d'
+		if(!utils_strncasecmp(H264_SUFFIX,(ext+1),namelen)||!utils_strncasecmp(AVC_SUFFIX,(ext+1),namelen)) {
+			*vType = SIGM_VIDEO_CodingAVC;
+			return 0;
+		}else if(!utils_strncasecmp(H265_SUFFIX,(ext+1),namelen)||!utils_strncasecmp(HEVC_SUFFIX,(ext+1),namelen)) {
+			*vType = SIGM_VIDEO_CodingHEVC;
+			return 0;
+		}else if( !utils_strncasecmp(VC1_SUFFIX,(ext+1),namelen)) {
+			*vType = SIGM_VIDEO_CodingVC1;
+			return 0;
+		}else if( !utils_strncasecmp(VP8_SUFFIX,(ext+1),namelen)) {
+			*vType = SIGM_VIDEO_CodingVP8;
+			return 0;
+		}else if( !utils_strncasecmp(VP9_SUFFIX,(ext+1),namelen)) {
+			*vType = SIGM_VIDEO_CodingVP9;
+			return 0;
+		}
     }
+	*vType = SIGM_VIDEO_CodingUnused;
 	return -1;
 }
 
-static FILE * ves_open_input(const char * fileName) {
+static FILE * ves_open_input(const char * fileName, bool isBinary) {
 	FILE* fp = NULL;
 	int32_t res = 0;
 	
@@ -176,10 +155,11 @@ static FILE * ves_open_input(const char * fileName) {
 		return NULL;
 	}
 
-	res = fopen_s(&fp,fileName, "rb");
+	if(isBinary) res = fopen_s(&fp,fileName, "rb");
+	else res = fopen_s(&fp,fileName, "r");
 
     if (res >= 0) {
-		printf("Open file ok! file:%s\n", fileName);
+		printf("Open file ok! file:%s %s\n", fileName,strerror(errno));
     } else {
         printf("Can't Open file %s error %s\n", fileName, strerror(errno));
         fp = NULL;
@@ -195,9 +175,24 @@ static int ves_close_input(FILE * fp) {
 	return 0;
 }
 
-VideoESSource::VideoESSource(
-				const sp<VideoESExtractor> &extractor, size_t trackindex)
-		: mExtractor(extractor),
+#if 0
+static int custom_filter(const struct dirent *pDir)
+{		
+	int i =0;
+	for(i = 0; i< sizeof(prefix_list)/sizeof(const char *); i++) {
+    	if (strncmp(prefix_list[i], pDir->d_name, strlen(prefix_list[i])) == 0 )
+        	return 1;
+	}
+    return 0;
+}
+#endif
+
+static int get_rand(int n) {//0-n-1
+	return (int)(n*rand()/(RAND_MAX+1.0));
+}
+
+MultipleVideoESSource::MultipleVideoESSource(const sp<MultipleVideoESExtractor> &extractor, size_t trackindex)
+		:mExtractor(extractor),
 		mTrackIndex(trackindex),
 		mBuffer(NULL),
 		bEOS(false),
@@ -205,14 +200,14 @@ VideoESSource::VideoESSource(
 		eType(SIGM_VIDEO_CodingUnused){
 			const char *mime;
 			mExtractor->mTracks.itemAt(trackindex).mMeta->findCString(kKeyMIMEType, &mime);
-			if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_MPEG4)) {
-				eType = SIGM_VIDEO_CodingMPEG4;
+			if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_AVC)) {
+				eType = SIGM_VIDEO_CodingAVC;
 			}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_WMV3)) {
 				eType = SIGM_VIDEO_CodingVC1;
-			}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_RV)) {
-				eType = SIGM_VIDEO_CodingRV;
-			}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP6)) {
-			    eType = SIGM_VIDEO_CodingVP6;
+			}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_HEVC)) {
+				eType = SIGM_VIDEO_CodingHEVC;
+			}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP9)) {
+			    eType = SIGM_VIDEO_CodingVP9;
 			}else if (!strcasecmp(mime, MEDIA_MIMETYPE_VIDEO_VP8)) {
 				eType = SIGM_VIDEO_CodingVP8;
 			}else {
@@ -225,21 +220,21 @@ VideoESSource::VideoESSource(
 
 }
 
-Error_Type_e VideoESSource::start(MetaData *params) {
+Error_Type_e MultipleVideoESSource::start(MetaData *params) {
 		run();
 		return SIGM_ErrorNone;
 }
 
-Error_Type_e VideoESSource::stop() {
+Error_Type_e MultipleVideoESSource::stop() {
 	    requestExitAndWait();
 		return SIGM_ErrorNone;
 }
 
-sp<MetaData> VideoESSource::getFormat() {
+sp<MetaData> MultipleVideoESSource::getFormat() {
 		return mExtractor->mTracks.itemAt(mTrackIndex).mMeta;
 }
 
-Error_Type_e VideoESSource::read(
+Error_Type_e MultipleVideoESSource::read(
 				MediaBuffer **out, const ReadOptions *options) {
 		*out = NULL;
 
@@ -260,7 +255,7 @@ Error_Type_e VideoESSource::read(
 		return SIGM_ErrorNone;
 }
 
-bool VideoESSource::threadLoop()
+bool MultipleVideoESSource::threadLoop()
 {
 	Error_Type_e err =  SIGM_ErrorNone;
 	int64_t timeUs;
@@ -311,7 +306,7 @@ bool VideoESSource::threadLoop()
 	if(size > 0) utils_log(AV_DUMP_ERROR,"Video pts %lld  size %d\n",timeUs,mBuffer->range_length());
 	else  utils_log(AV_DUMP_ERROR,"Video last packet  size %d\n",timeUs,mBuffer->range_length());
 #ifdef DEBUGFILE
-	{
+	if(size > 0){
 		fwrite((void *)mBuffer->data(),mBuffer->range_length(),1,mFile);
 		fflush(mFile);
 	}
@@ -347,7 +342,7 @@ bool VideoESSource::threadLoop()
         sp<Listener> listener = mListener.promote();
 
         if (listener != NULL) {
-            err = listener->sendEvent(MEDIA_BUFFERING_UPDATE,0,0,&buffer);
+            listener->sendEvent(MEDIA_BUFFERING_UPDATE,0,0,(unsigned int *)&buffer);
         }
     }
 	
@@ -371,18 +366,18 @@ bool VideoESSource::threadLoop()
 		}
 	}
 	//else  keep the back up the data
-	Sleep(5);
+	Sleep(20);
 	return true;
 }
 
-int VideoESSource::requestExitAndWait() {
+int MultipleVideoESSource::requestExitAndWait() {
 	int ret = Thread::requestExitAndWait();
 	bEOS = false;
 	return ret;
 }
 
 
-Error_Type_e VideoESSource::pause() {
+Error_Type_e MultipleVideoESSource::pause() {
 	Mutex::Autolock autoLock(mLock);
 
 	if(mStatus & EOS)
@@ -404,7 +399,7 @@ Error_Type_e VideoESSource::pause() {
 	
 }
 
-Error_Type_e VideoESSource::resume() {
+Error_Type_e MultipleVideoESSource::resume() {
 	Mutex::Autolock autoLock(mLock);
 
 	mStatus &= ~PAUSED;
@@ -418,7 +413,7 @@ Error_Type_e VideoESSource::resume() {
 	return SIGM_ErrorNone;
 }
 
-Error_Type_e VideoESSource::seekTo(uint64_t timeMS) {	
+Error_Type_e MultipleVideoESSource::seekTo(uint64_t timeMS) {	
 	int64_t seekTimeUs = -1;//default no seek
 	ReadOptions::SeekMode mode;
 
@@ -445,15 +440,16 @@ Error_Type_e VideoESSource::seekTo(uint64_t timeMS) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-VideoESExtractor::VideoESExtractor(const sp<DataSource> &source)
+MultipleVideoESExtractor::MultipleVideoESExtractor(const sp<DataSource> &source)
 	: mDataSource(source),
 	mEof(false),
 	mCurrentOffset(0),
+	eType(SIGM_VIDEO_CodingUnused),
 	mFp(NULL){
 	addTracks();
 }
 
-VideoESExtractor::~VideoESExtractor() {
+MultipleVideoESExtractor::~MultipleVideoESExtractor() {
 		//close the stream
 	printf("ves_close_input...\n");
 	if(mFp){
@@ -463,18 +459,18 @@ VideoESExtractor::~VideoESExtractor() {
 	mCurrentOffset = 0;
 }
 
-size_t VideoESExtractor::countTracks() {
+size_t MultipleVideoESExtractor::countTracks() {
 	return mTracks.size(); //only one track for video
 }
 
-sp<MediaSource> VideoESExtractor::getTrack(size_t index) {
+sp<MediaSource> MultipleVideoESExtractor::getTrack(size_t index) {
 	if (index >= mTracks.size()) {
 		return NULL;
 	}
-	return new VideoESSource(this, index);
+	return new MultipleVideoESSource(this, index);
 }
 
-sp<MetaData> VideoESExtractor::getTrackMetaData(
+sp<MetaData> MultipleVideoESExtractor::getTrackMetaData(
 				size_t index, uint32_t flags) {
 	if (index >= mTracks.size()) {
 		return NULL;
@@ -483,57 +479,97 @@ sp<MetaData> VideoESExtractor::getTrackMetaData(
 	return mTracks.itemAt(index).mMeta;
 }
 
-int VideoESExtractor::addTracks() {
+int MultipleVideoESExtractor::addTracks() {
 		Mutex::Autolock autoLock(mLock);
-		String8 mStreamBuf;
-		Video_CodingType_e type;
-		int index = 0;
-
+		String8 mStreamPath;
+		Video_CodingType_e type = SIGM_VIDEO_CodingUnused;;
+		int len = 0 , i = 0, index = 0;
+		FILE * fp = NULL;
+		char linebuf[MAX_LINE];
+		char path_buffer[MAX_LINE];
+		char drive[MAX_LINE];
+		char dir[MAX_LINE];
+		char fname[MAX_LINE];
+		char ext[MAX_LINE];
+		
+		int ret = 0;
+		int n = 0;
+		
 		if(mTracks.size() > 0){
 			printf("why are we trying to add tracks when it is already done!!\n");
 			return -1;
 		}
 
 		printf("%s %d\n",__FUNCTION__,__LINE__);
-		mStreamBuf = mDataSource->getUri();
-	
+		mStreamPath = mDataSource->getUri();
+
+		mFileNo = 0;
+
+		if ((fp = ves_open_input(mStreamPath.string(),false)) == NULL){
+			printf("Couldn't open file %s\n",mStreamPath.string());
+			return -1;
+		}
+		else{
+			while(fgets(linebuf,MAX_LINE,fp) != NULL){
+ 				len = strlen(linebuf);
+ 				linebuf[len-1] = '\0';
+ 				printf("%s\n",linebuf);
+
+				if((ret = ves_find_stream_info(linebuf,(unsigned int *)&type) == 0)){
+					if( SIGM_VIDEO_CodingUnused == eType ) eType = type;
+					else if(eType != type) {
+						printf("why there is different coding type \n");
+						printf("skip this\n");
+						continue;
+					}
+
+					_splitpath( mStreamPath.string(), drive, dir, fname, ext );
+					
+					mFileName[mFileNo]= drive;
+					mFileName[mFileNo] += dir;
+					mFileName[mFileNo] += "/";
+					mFileName[mFileNo] += linebuf;
+					mFileNo++;	
+ 				}
+			}
+		}
+
+		ves_close_input(fp);
+		fp = NULL;	
+		
+		srand((int)time(0)); //init the random generate
+
+		n = get_rand(mFileNo);
+		
 		if(NULL == mFp){	  	
-			if((mFp = ves_open_input((const char *)mStreamBuf.string())) == NULL)
+			if((mFp = ves_open_input((const char *)mFileName[n].string(),true)) == NULL)
 			{
 				/* Couldn't open file*/ 
-				printf("ves_open_input failed for file!!\n");
+				printf("open_input failed for file %s!!\n",mFileName[n].string());
 				return -1;
 			} 
 		}
-
-		/* Retrieve stream information */
-		if(ves_find_stream_info(mFp,(unsigned int *)&type) < 0){
-			/* Couldn't find stream information */
-			printf("ves_find_stream_info failed \n");
-			return -1;
-		}
 		
-		_fseeki64(mFp,0L, SEEK_SET);
 
 		sp<MetaData> meta = new MetaData;
 	    switch(type){
 			case SIGM_VIDEO_CodingVC1:
 				meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_WMV3);
 				break;
-			case SIGM_VIDEO_CodingRV:
-				meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_RV);
-				break;
-			case SIGM_VIDEO_CodingVP6:
-				meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_VP6);
+			case SIGM_VIDEO_CodingAVC:
+				meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_AVC);
 				break;
 			case SIGM_VIDEO_CodingVP8:
 				meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_VP8);
 				break;
-			case SIGM_VIDEO_CodingMPEG4:
-				meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_MPEG4);
+			case SIGM_VIDEO_CodingVP9:
+				meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_VP9);
+				break;
+			case SIGM_VIDEO_CodingHEVC:
+				meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_VIDEO_HEVC);
 				break;
 			default:
-				printf("unknown video type\n");
+				printf("unknown supported video type\n");
 				ves_close_input(mFp);
 				mFp = NULL;
 				return -1;
@@ -549,28 +585,29 @@ int VideoESExtractor::addTracks() {
 
 
 
-sp<MetaData> VideoESExtractor::getMetaData() {
+sp<MetaData> MultipleVideoESExtractor::getMetaData() {
 		sp<MetaData> meta = new MetaData;
-		meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_CONTAINER_VES);
+		meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_CONTAINER_ESFILES);
 		return meta;
 }
 
 //This is valid if we have multiple video tracks
-void VideoESExtractor::setTrackActive(int trackIndex, bool enable) {
+void MultipleVideoESExtractor::setTrackActive(int trackIndex, bool enable) {
 }
 
 //Get Next frame of corresponding track..
-MediaBuffer * VideoESExtractor::getNextEncFrame(int trackIndex, int64_t seekTime, int seekMode){
+MediaBuffer * MultipleVideoESExtractor::getNextEncFrame(int trackIndex, int64_t seekTime, int seekMode){
 		Mutex::Autolock autoLock(mLock);
 		MediaBuffer * frame = NULL;
 		uint32_t size = 0;
+		int n = 0;
 
 		if(NULL == mFp){
 			printf("No valid video file context FATAL!\n");
 			return NULL;
 		}
 
-		size = fread((void *)buf, 1, DATA_UNIT_SIZE, mFp);
+		if(!feof(mFp)) size = fread((void *)buf, 1, DATA_UNIT_SIZE, mFp);
 
 		if(size > 0) {
 			MediaBuffer *buffer = new MediaBuffer(size);
@@ -581,31 +618,106 @@ MediaBuffer * VideoESExtractor::getNextEncFrame(int trackIndex, int64_t seekTime
 			mCurrentOffset += size;
 			return buffer;
 		}else {
-			mEof = true;
-			return NULL;
+			//switch file
+			if(mFp){
+			   ves_close_input(mFp);
+		       mFp = NULL;
+			   mCurrentOffset = 0;
+		    }
+			n = get_rand(mFileNo);
+		
+			if(NULL == mFp){	  	
+				if((mFp = ves_open_input((const char *)mFileName[n].string(),true)) == NULL)
+				{
+					/* Couldn't open file*/ 
+					printf("open_input failed for file!!\n");
+					mEof = true;
+					return NULL;
+				}
+
+				if(!feof(mFp)) size = fread((void *)buf, 1, DATA_UNIT_SIZE, mFp);
+
+				if(size > 0) {
+					MediaBuffer *buffer = new MediaBuffer(size);
+					memcpy((void *)buffer->data(),(void *)buf,size);
+					buffer->meta_data()->setInt64(kKeyTime, -1ULL);
+		
+					buffer->set_range(0, size);
+					mCurrentOffset += size;
+					return buffer;
+				}
+				else {
+					mEof = true;
+					return NULL;
+				}
+			}else{
+				printf("why here\n");
+				mEof = true;
+				return NULL;
+			}
 		}
 }
 
-void  VideoESExtractor::seekTo(int trackIndex,int64_t time_us){
+void  MultipleVideoESExtractor::seekTo(int trackIndex,int64_t time_us){
 	bool bIsseekmode = false;
 	Mutex::Autolock autoLock(mLock);
 	
 	return;
 }
 
-bool SniffVideoES(
+bool SniffMultipleVideoES(
 				const sp<DataSource> &source, String8 *mimeType, float *confidence) {
 		String8 streamBuf;
 		int ret = 0;
 		FILE * fp = NULL;
-
-		mimeType->setTo(MEDIA_MIMETYPE_CONTAINER_VES);
+		Video_CodingType_e eType = SIGM_VIDEO_CodingUnused;
+		char linebuf[MAX_LINE];
+		int len = 0;
+#if 0
+		struct stat bufStat;
+		int n;	
+		DIR * dir;
+    	struct dirent * ptr;
+    	int i;
+		int get = 0;
+#endif    	
+		mimeType->setTo(MEDIA_MIMETYPE_CONTAINER_ESFILES);
 		
 		streamBuf = source->getUri();
-		printf("VES sniff %s\n",streamBuf.string());
-		
-		//try opening file 
-		if ((fp = ves_open_input(streamBuf.string())) == NULL)
+		printf("MultipleVES sniff %s\n",streamBuf.string());
+#if 0
+		if(stat(streamBuf.string(), &bufStat))  {
+			printf("can't find the file %s\n",streamBuf);
+			*confidence = 0;
+			return false;
+		}
+
+		if(!(bufStat.st_mode|S_IFDIR)) {
+			printf("The file %s isn't folder\n",streamBuf);
+			*confidence = 0;
+			return false;
+		}
+
+		dir = opendir(streamBuf.string());
+    	while((ptr = readdir(dir)) != NULL)
+    	{
+        	printf("d_name : %s\n", ptr->d_name);
+			for(i = 0; i< sizeof(prefix_list)/sizeof(const char *); i++) {
+    			if (strncmp(prefix_list[i], ptr->d_name, strlen(prefix_list[i])) == 0 ) {
+					get = 1;
+					break;
+    			}
+			}
+		}
+    	closedir(dir);
+	
+		if (get == 0){
+			printf("can't find any right files\n");
+			*confidence = 0;
+			return false;
+		}
+#endif
+		if ((fp = ves_open_input(streamBuf.string(),false)) == NULL)
 		{
 				/* Couldn't open file*/ 
 				printf("ves_open_input failed for file while sniffing ret %x!!\n",fp);
@@ -613,27 +725,26 @@ bool SniffVideoES(
 				return false;
 		}
 		else{
-				*confidence = 0.0001;
-				printf("sniff pass with 0.0001 confidence by ves\n");
-				if(fp){
+				*confidence = 0;
+				printf("sniff pass with 0 confidence by multiple es\n");
+				
+				while(fgets(linebuf,MAX_LINE,fp) != NULL){
+ 					len = strlen(linebuf);
+ 					linebuf[len-1] = '\0';
+ 					printf("%s %d \n",linebuf,len - 1);
 
-						Video_CodingType_e eType = SIGM_VIDEO_CodingUnused;
-						/* Retrieve stream information */
-						if((ret = ves_find_stream_info(fp,(unsigned int *)&eType))<0)
-						{
-								/* Couldn't find stream information */
-								*confidence = 0.0f;	   
-								printf("ves_find_stream_info failed %d %s ret %x",__LINE__,__FUNCTION__,ret);
-								return false;
-						}
-
-						printf("Sniff ves type %x\n",eType);
-					
-						*confidence = 0.2f;	     		
-						
-						ves_close_input(fp);
-						fp = NULL;
-				}
+					if((ret = ves_find_stream_info(linebuf,(unsigned int *)&eType) == 0))
+					{
+						*confidence = 0.5f;
+						printf("sniff pass with 0.5 confidence by multiple ves\n");
+						break;
+					}
+ 				}
 		}
-		return true;
+
+		ves_close_input(fp);
+		fp = NULL;		
+
+		if(*confidence > 0) return true;			
+		return false;
 }

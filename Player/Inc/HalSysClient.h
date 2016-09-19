@@ -15,6 +15,11 @@ typedef enum {
 	HDMI,
 }HalSysType;
 
+typedef struct {
+	bool seamless;
+	bool lowdelay;
+}HalSysMode;
+
 class HalSysClient: public virtual RefBase,public virtual Listener {
 public:
    	HalSysClient(HalSysType eType);
@@ -22,7 +27,7 @@ public:
 
 	Error_Type_e connect();
 	Error_Type_e disconnect();
-    Error_Type_e init();
+    Error_Type_e init(HalSysMode & mode);
     Error_Type_e deinit();
 	Error_Type_e open(Video_CodingType_e video_format, Audio_CodingType_e audio_format);
 	Error_Type_e close();
@@ -56,6 +61,7 @@ private:
 	wp<Listener> mListener;
 	sigma_handle_t mHandle;
 
+	HalSysMode mMode;
 	CallBackFuncsInfo_t  tEOSCbInfo;
 	
 };

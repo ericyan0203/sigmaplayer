@@ -104,12 +104,12 @@ struct MediaSource : public virtual RefBase ,public virtual Thread {
 
 protected:
     virtual ~MediaSource();
+	wp<Listener> mListener;
 
 private:
     MediaSource(const MediaSource &);
     MediaSource &operator=(const MediaSource &);
-
-	wp<Listener> mListener;
+	
 };
 
 

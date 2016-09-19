@@ -87,5 +87,6 @@ extern const char *MEDIA_MIMETYPE_VIDEO_H263;
 extern const char *MEDIA_MIMETYPE_AUDIO_DTS;
 extern const char *MEDIA_MIMETYPE_CONTAINER_FFMPEG;
 extern const char *MEDIA_MIMETYPE_CONTAINER_VES;
+extern const char *MEDIA_MIMETYPE_CONTAINER_ESFILES;
 
 #endif  // MEDIA_DEFS_H_

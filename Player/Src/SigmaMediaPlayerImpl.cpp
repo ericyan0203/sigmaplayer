@@ -172,6 +172,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
 
     int64_t totalBitRate = 0;
 	Error_Type_e ret = SIGM_ErrorNone;
+	HalSysMode mode = {0};
 
     mExtractor = extractor;
     for (size_t i = 0; i < extractor->countTracks(); ++i) {
@@ -203,12 +204,16 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
 
 	if(!mDurationUs) mDurationUs = 3000000ULL;
 
-#if 0
+#if 1
     sp<MetaData> fileMeta = mExtractor->getMetaData();
     if (fileMeta != NULL) {
-        int64_t duration;
-        if (fileMeta->findInt64(kKeyDuration, &duration)) {
-            mDurationUs = duration;
+         const char *_mime;
+        if (fileMeta->findCString(kKeyMIMEType, &_mime)) {
+            utils_log(AV_DUMP_ERROR,"extractor mime %s\n",_mime);
+			if(!strcasecmp(_mime, MEDIA_MIMETYPE_CONTAINER_ESFILES))
+			{
+				mode.seamless = true;
+			}
         }
     }
 #endif
@@ -286,7 +291,7 @@ Error_Type_e SigmaMediaPlayerImpl::setDataSource_l(const sp<MediaExtractor> &ext
     mExtractorFlags = extractor->flags();
 	
 #ifdef HALSYS
-	ret = mClient->init();
+	ret = mClient->init(mode);
 #endif
     return ret;
 }

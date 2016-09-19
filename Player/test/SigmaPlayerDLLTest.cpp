@@ -15,7 +15,8 @@
 //#define FILE_PATH 	"d://halsys/HEVC.hevc"
 //#define FILE_PATH 	"d://halsys/150528_1_t2_642_HBBTV_EPG_5_service.ts"
 //#define FILE_PATH "d://BBC.mp4"
-#define FILE_PATH "d://test_es/test.vc1"
+//#define FILE_PATH "d://test_es/test.vc1"
+#define FILE_PATH "D://halsys/Seamless/avc/setting.txt"
 #define SERVER_IP 	"10.86.62.6"
 #define SERVER_PORT 52116
 #endif

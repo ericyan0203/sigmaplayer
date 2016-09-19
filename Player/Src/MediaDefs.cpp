@@ -85,3 +85,4 @@ const char *MEDIA_MIMETYPE_VIDEO_DIVX3 = "video/divx3";
 
 const char *MEDIA_MIMETYPE_CONTAINER_FFMPEG = "stream/ffmpeg";
 const char *MEDIA_MIMETYPE_CONTAINER_VES = "stream/video-es";
+const char *MEDIA_MIMETYPE_CONTAINER_ESFILES = "stream/video-seamless";

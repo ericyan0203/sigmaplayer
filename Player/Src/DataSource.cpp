@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 #include "FfmpegExtractor.h"
-#include "VESExtractor.h"
+#include "VideoESExtractor.h"
+#include "MultipleFilesExtractor.h"
 
 #include "DataSource.h"
 #include "FileSource.h"
@@ -144,6 +145,7 @@ void DataSource::RegisterDefaultSniffers() {
 
 	RegisterSniffer_l(SniffFfmpeg);	
 	RegisterSniffer_l(SniffVideoES);
+	RegisterSniffer_l(SniffMultipleVideoES);
 	
     gSniffersRegistered = true;
 }

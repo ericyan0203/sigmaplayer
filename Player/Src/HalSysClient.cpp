@@ -78,8 +78,10 @@ Error_Type_e HalSysClient::disconnect() {
 	return SIGM_ErrorNone;
 }
 
-Error_Type_e HalSysClient::init() {
+Error_Type_e HalSysClient::init(HalSysMode& mode) {
 	Mutex::Autolock autoLock(mLock);
+	mMode.seamless = mode.seamless;
+	mMode.lowdelay = mode.lowdelay;
 	return HalSys_Media_Initialize();
 }
 
@@ -98,7 +100,7 @@ Error_Type_e HalSysClient::open(Video_CodingType_e video_format, Audio_CodingTyp
     tMediaConfig.tAudioConfig.eAudioFormat = mAudioFormat;
     tMediaConfig.tAudioConfig.eSoundSink = (audio_format == SIGM_AUDIO_CodingUnused)?0:(SIGM_SOUND_SINK_HEADPHONE | SIGM_SOUND_SINK_SPDIF_PCM | SIGM_SOUND_SINK_SPEAKER);
 
-    tMediaConfig.tVideoConfig.eVideoDisplayMode = SIGM_SEAMLESS_NONE;
+    tMediaConfig.tVideoConfig.eVideoDisplayMode = mMode.seamless?SIGM_SEAMLESS_UD: SIGM_SEAMLESS_NONE;
     tMediaConfig.tVideoConfig.eVideoFormat = mVideoFormat ;
     tMediaConfig.tVideoConfig.eVideoPlayMode = SIGM_PLAYMODE_NORMAL;
     tMediaConfig.tVideoConfig.eVideoStreamMode = SIGM_STREAMMODE_NORMAL;
