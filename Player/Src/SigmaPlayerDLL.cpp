@@ -52,6 +52,7 @@ int halsys_player_init(const char * ip, const int port){
 	socket_connect(ip,port, 3000);
 	socket_setListener((Observer)Utils_InvokeCallback);
 	client_server_start();
+	utils_log(AV_DUMP_ERROR,"halsys_player_init\n");
 	return 0;
 }
 
@@ -60,6 +61,7 @@ int halsys_player_deinit() {
 	Utils_DeinitInfoArray();
 	socket_disconnect();
 	client_server_stop();
+	utils_log(AV_DUMP_ERROR,"halsys_player_deinit\n");
 	return 0;
 }
 
@@ -69,6 +71,7 @@ int  halsys_media_player_create(const char * url,void** phandle){
 	 player->setDataSource(url);
 
 	 *phandle = (void *)player.get();
+	 utils_log(AV_DUMP_ERROR,"halsys_media_player_create\n");
 	 return 0;
 }
 
@@ -76,31 +79,33 @@ int halsys_media_player_start(void * phandle) {
 	if(phandle == player.get()) {
 	 	player->start();
 	}else {
-		printf("handle pointer isn't correct\n");
+		utils_log(AV_DUMP_ERROR,"handle pointer isn't correct\n");
 		return -1;
 	}
 
-	 return 0;
+	utils_log(AV_DUMP_ERROR,"halsys_media_player_start\n");
+	return 0;
 }
 
 int halsys_media_player_stop(void * phandle) {
 	if(phandle == player.get()) {
 	 	player->stop();
 	}else {
-		printf("handle pointer isn't correct\n");
+		utils_log(AV_DUMP_ERROR,"handle pointer isn't correct\n");
 		return -1;
 	}
-
-	 return 0;
+	utils_log(AV_DUMP_ERROR,"halsys_media_player_stop\n");
+	return 0;
 }
 
 int  halsys_media_player_destroy(void * phandle) {
 	if(phandle == player.get()) {
 	 	player.clear();
 	}else {
-		printf("handle pointer isn't correct\n");
+		utils_log(AV_DUMP_ERROR,"handle pointer isn't correct\n");
 		return -1;
 	}
+	utils_log(AV_DUMP_ERROR,"halsys_media_player_destroy\n");
 
 	 return 0;
 }
@@ -277,6 +282,11 @@ int halsys_dtv_player_stop(void * channel) {
 	return HalSys_DigitalTV_Stop(channel);
 }
 
-int  halsys_dtv_player_destroy(void * phandle) {
+int halsys_dtv_player_destroy(void * phandle) {
 	return HalSys_DigitalTV_Close(phandle);
+}
+
+int halsys_tuner_lock(int stacktype, int bandwidth, int symbolrate, int freqkhz)
+{
+	return 0;
 }

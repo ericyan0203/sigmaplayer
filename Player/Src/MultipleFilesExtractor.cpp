@@ -730,6 +730,7 @@ bool SniffMultipleVideoES(
 				
 				while(fgets(linebuf,MAX_LINE,fp) != NULL){
  					len = strlen(linebuf);
+					if(len==0) break;
  					linebuf[len-1] = '\0';
  					printf("%s %d \n",linebuf,len - 1);
 

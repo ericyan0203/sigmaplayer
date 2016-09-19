@@ -106,4 +106,7 @@ extern "C" int __declspec(dllexport)halsys_dtv_player_start(void * phandle, chan
 extern "C" int __declspec(dllexport)halsys_dtv_player_stop(void * channel);
 
 extern "C" int __declspec(dllexport)halsys_dtv_player_destroy(void * phandle);
+
+extern "C" int __declspec(dllexport)halsys_tuner_lock(int stackyype, int bandwidth, int symbolrate, int freqkhz);
+
 #endif

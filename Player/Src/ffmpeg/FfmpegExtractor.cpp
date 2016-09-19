@@ -1627,7 +1627,7 @@ void FfmpegExtractor::findThumbnails() {
 
 sp<MetaData> FfmpegExtractor::getMetaData() {
 		sp<MetaData> meta = new MetaData;
-		meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_CONTAINER_WMV);
+		meta->setCString(kKeyMIMEType, MEDIA_MIMETYPE_CONTAINER_FFMPEG);
 		return meta;
 }
 //This is valid if we have multiple video/audio/subtitle tracks
@@ -2353,18 +2353,18 @@ bool SniffFfmpeg(
 				bIsAvRegistered = false;
 		}
 		streamBuf = source->getUri();
-		printf("FFMPEG sniff %s\n",streamBuf.string());
+		utils_log(AV_DUMP_ERROR,"FFMPEG sniff %s\n",streamBuf.string());
 		//try opening file 
 		if ((ret = (avformat_open_input(&pFormatCtx, (const char *)streamBuf.string(),NULL, NULL))) < 0)
 		{
 				/* Couldn't open file*/ 
-				printf("av_open_input failed for file while sniffing ret %x!!\n",ret);
+				utils_log(AV_DUMP_ERROR,"av_open_input failed for file while sniffing ret %x!!\n",ret);
 				*confidence = 0;
 				return false;
 		}
 		else{
 				*confidence = 0.0001;
-				printf("sniff pass with 0.0001 confidence by ffmpeg\n");
+				utils_log(AV_DUMP_ERROR,"sniff pass with 0.0001 confidence by ffmpeg\n");
 				if(pFormatCtx){
 
 						bool  IsSupportedVideoFormat = false, IsSupportedAudioFormat= false;
@@ -2373,13 +2373,13 @@ bool SniffFfmpeg(
 						if((ret = avformat_find_stream_info(pFormatCtx,NULL))<0)
 						{
 								/* Couldn't find stream information */
-								printf("av_find_stream_info failed %d %s ret %x",__LINE__,__FUNCTION__,ret);
+								utils_log(AV_DUMP_ERROR,"av_find_stream_info failed %d %s ret %x",__LINE__,__FUNCTION__,ret);
 								return false;
 						}
 						/* Add tracks */
 						for(  unsigned int uCount=0; uCount<pFormatCtx->nb_streams; uCount++)
 						{
-								printf("trackindx:%d extradata size:%d\n",uCount,pFormatCtx->streams[uCount]->codec->extradata_size);
+								utils_log(AV_DUMP_ERROR,"trackindx:%d extradata size:%d\n",uCount,pFormatCtx->streams[uCount]->codec->extradata_size);
 								if(pFormatCtx->streams[uCount]->codec->codec_type == AVMEDIA_TYPE_VIDEO) 
 								{
 										switch(pFormatCtx->streams[uCount]->codec->codec_id)
@@ -2404,12 +2404,12 @@ bool SniffFfmpeg(
 												case    AV_CODEC_ID_FLV1:
 												case    AV_CODEC_ID_VP9:
 												case    AV_CODEC_ID_H265:
-														printf("SniffFfmpeg FOUND supported video format %x \n",pFormatCtx->streams[uCount]->codec->codec_id);
+														utils_log(AV_DUMP_ERROR,"SniffFfmpeg FOUND supported video format %x \n",pFormatCtx->streams[uCount]->codec->codec_id);
 														IsSupportedVideoFormat = true;
 														break;
 
 												default:
-														printf("SniffFfmpeg unsupported video format %x\n",pFormatCtx->streams[uCount]->codec->codec_id);
+														utils_log(AV_DUMP_ERROR,"SniffFfmpeg unsupported video format %x\n",pFormatCtx->streams[uCount]->codec->codec_id);
 														break;				  
 										}
 								}
@@ -2429,12 +2429,12 @@ bool SniffFfmpeg(
 												case  AV_CODEC_ID_WMALOSSLESS:
 												case  AV_CODEC_ID_EAC3:	
 												case  AV_CODEC_ID_COOK:	
-														printf("SniffFfmpeg FOUND MPEG AUdio format %x \n",pFormatCtx->streams[uCount]->codec->codec_id);						 	
+														utils_log(AV_DUMP_ERROR,"SniffFfmpeg FOUND MPEG AUdio format %x \n",pFormatCtx->streams[uCount]->codec->codec_id);						 	
 														IsSupportedAudioFormat = true;
 														break;
 
 												default:
-														printf("SniffFfmpeg unsupported audio format %x\n",pFormatCtx->streams[uCount]->codec->codec_id);
+														utils_log(AV_DUMP_ERROR,"SniffFfmpeg unsupported audio format %x\n",pFormatCtx->streams[uCount]->codec->codec_id);
 														break;
 										}
 
@@ -2442,7 +2442,7 @@ bool SniffFfmpeg(
 						}			
 						if(IsSupportedAudioFormat || IsSupportedVideoFormat)
 						{
-								printf("SniffFfmpeg Increasing FFMPEG Confidence level video supported %d audio supported %d\n",IsSupportedAudioFormat,IsSupportedVideoFormat);						 	
+								utils_log(AV_DUMP_ERROR,"SniffFfmpeg Increasing FFMPEG Confidence level video supported %d audio supported %d\n",IsSupportedAudioFormat,IsSupportedVideoFormat);						 	
 
 								*confidence = 0.3f;	     		
 						}
