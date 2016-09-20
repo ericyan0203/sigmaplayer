@@ -61,7 +61,7 @@ int halsys_player_deinit() {
 	Utils_DeinitInfoArray();
 	socket_disconnect();
 	client_server_stop();
-	utils_log(AV_DUMP_ERROR,"halsys_player_deinit\n");
+	//utils_log(AV_DUMP_ERROR,"halsys_player_deinit\n");
 	return 0;
 }
 

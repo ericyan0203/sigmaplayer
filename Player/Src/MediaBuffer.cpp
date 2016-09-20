@@ -49,7 +49,7 @@ MediaBuffer::MediaBuffer(size_t size)
 
 void MediaBuffer::release() {
     int prevCount = mRefCount--;
-    if (prevCount == 1) {
+    if (prevCount == 0) {
             delete this;
             return;
         }

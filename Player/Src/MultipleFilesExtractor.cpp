@@ -159,9 +159,9 @@ static FILE * ves_open_input(const char * fileName, bool isBinary) {
 	else res = fopen_s(&fp,fileName, "r");
 
     if (res >= 0) {
-		printf("Open file ok! file:%s %s\n", fileName,strerror(errno));
+		utils_log(AV_DUMP_ERROR,"Open file ok! file:%s fp %p\n", fileName,fp);
     } else {
-        printf("Can't Open file %s error %s\n", fileName, strerror(errno));
+        utils_log(AV_DUMP_ERROR,"Can't Open file %s error %s\n", fileName, strerror(errno));
         fp = NULL;
     }
 	return fp;
@@ -169,6 +169,7 @@ static FILE * ves_open_input(const char * fileName, bool isBinary) {
 
 static int ves_close_input(FILE * fp) {
 	if(fp == NULL) {
+		utils_log(AV_DUMP_ERROR,"ves_close_input \n");
 		return -1;
 	}
 	fclose(fp);
@@ -249,7 +250,7 @@ Error_Type_e MultipleVideoESSource::read(
 		
 		if(NULL == *out){
 				*out = new MediaBuffer(0);
-				printf("ves Extractor returned EOS\n");
+				utils_log(AV_DUMP_ERROR,"ves Extractor returned EOS\n");
 				return SIGM_ErrorNone;
 		}
 		return SIGM_ErrorNone;
@@ -603,7 +604,7 @@ MediaBuffer * MultipleVideoESExtractor::getNextEncFrame(int trackIndex, int64_t 
 		int n = 0;
 
 		if(NULL == mFp){
-			printf("No valid video file context FATAL!\n");
+			utils_log(AV_DUMP_ERROR,"No valid video file context FATAL!\n");
 			return NULL;
 		}
 
@@ -620,6 +621,7 @@ MediaBuffer * MultipleVideoESExtractor::getNextEncFrame(int trackIndex, int64_t 
 		}else {
 			//switch file
 			if(mFp){
+			   utils_log(AV_DUMP_ERROR,"closing fp %p\n",mFp);
 			   ves_close_input(mFp);
 		       mFp = NULL;
 			   mCurrentOffset = 0;
@@ -630,7 +632,7 @@ MediaBuffer * MultipleVideoESExtractor::getNextEncFrame(int trackIndex, int64_t 
 				if((mFp = ves_open_input((const char *)mFileName[n].string(),true)) == NULL)
 				{
 					/* Couldn't open file*/ 
-					printf("open_input failed for file!!\n");
+					utils_log(AV_DUMP_ERROR,"open_input failed for file!!\n");
 					mEof = true;
 					return NULL;
 				}
@@ -647,11 +649,12 @@ MediaBuffer * MultipleVideoESExtractor::getNextEncFrame(int trackIndex, int64_t 
 					return buffer;
 				}
 				else {
+					utils_log(AV_DUMP_ERROR,"size <=0 %p\n",mFp);
 					mEof = true;
 					return NULL;
 				}
 			}else{
-				printf("why here\n");
+				utils_log(AV_DUMP_ERROR,"why here\n");
 				mEof = true;
 				return NULL;
 			}
