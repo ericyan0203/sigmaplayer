@@ -728,6 +728,7 @@ bool SniffMultipleVideoES(
 				return false;
 		}
 		else{
+			    int retry = 3;
 				*confidence = 0;
 				printf("sniff pass with 0 confidence by multiple es\n");
 				
@@ -743,6 +744,10 @@ bool SniffMultipleVideoES(
 						printf("sniff pass with 0.5 confidence by multiple ves\n");
 						break;
 					}
+					else{
+						retry--;
+					}
+					if(!retry) break;
  				}
 		}
 
