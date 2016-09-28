@@ -30,10 +30,11 @@ struct SigmaMediaPlayer : public ISigmaPlayer ,public virtual Listener{
         mCookie = cookie; mNotify = notifyFunc;
     }
 
-    virtual void   sendEvent(int msg, int ext1 = 0, int ext2 = 0,
+    virtual int   sendEvent(int msg, int ext1 = 0, int ext2 = 0,
                           unsigned int *obj=NULL) {
         Mutex::Autolock autoLock(mNotifyLock);
         if (mNotify) mNotify(mCookie, msg, ext1, ext2, obj);
+		return 0;
     } 
 	
 private:

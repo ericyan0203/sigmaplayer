@@ -35,6 +35,8 @@ static Error_Type_e sigma_test_init(void) {
     tBoardConfig.pAudioPathXML = AUDIO_PATH_XML;
     tBoardConfig.pDisplayFilePath = DISPLAY_CONFIG_PATH;
     ret = HalSys_Initialize(&tBoardConfig);
+
+	utils_log(AV_DUMP_ERROR,"HalSys_Initialize ret %x\n",ret);
     return ret;
 }
 
@@ -80,9 +82,14 @@ Error_Type_e HalSysClient::disconnect() {
 
 Error_Type_e HalSysClient::init(HalSysMode& mode) {
 	Mutex::Autolock autoLock(mLock);
+	Error_Type_e ret = SIGM_ErrorNone;
+
 	mMode.seamless = mode.seamless;
 	mMode.lowdelay = mode.lowdelay;
-	return HalSys_Media_Initialize();
+	ret = HalSys_Media_Initialize();
+
+	utils_log(AV_DUMP_ERROR,"HalSys_Media_Initialize ret %x\n",ret);
+	return ret;
 }
 
 Error_Type_e HalSysClient::open(Video_CodingType_e video_format, Audio_CodingType_e audio_format) {
@@ -109,11 +116,13 @@ Error_Type_e HalSysClient::open(Video_CodingType_e video_format, Audio_CodingTyp
 
 	ret = HalSys_Media_Open(&tMediaConfig, &mHandle);
 
+	utils_log(AV_DUMP_ERROR,"HalSys_Media_Open ret %x\n",ret);
+
 	if(SIGM_ErrorNone != ret) return ret;
 
 	tEOSCbInfo.ptInst = mHandle;
 	tEOSCbInfo.InfoID = SIGM_EVENT_STREAM_END;
-	printf("Install callback %p\n",this);
+	utils_log(AV_DUMP_ERROR,"Install callback %p\n",this);
 	ret = HalSys_Media_InstallCallback(&tEOSCbInfo,sf_eos_callback,this);
 
 	return ret;
@@ -142,6 +151,8 @@ Error_Type_e HalSysClient::start(){
 	if((sigma_handle_t)-1 != mHandle) {
 		ret = HalSys_Media_Start(mHandle);
 	}
+
+	utils_log(AV_DUMP_ERROR,"HalSys_Media_Start ret %x\n",ret);
 	return ret;
 }
 
@@ -152,6 +163,7 @@ Error_Type_e HalSysClient::stop() {
 	if( (sigma_handle_t)-1 != mHandle) {
 		ret = HalSys_Media_Stop(mHandle);
 	}
+	utils_log(AV_DUMP_ERROR,"HalSys_Media_Stop ret %x\n",ret);
 	return ret;
 }
 

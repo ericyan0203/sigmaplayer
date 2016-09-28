@@ -15,8 +15,11 @@
 //#define FILE_PATH 	"d://halsys/HEVC.hevc"
 //#define FILE_PATH 	"d://halsys/150528_1_t2_642_HBBTV_EPG_5_service.ts"
 //#define FILE_PATH "d://BBC.mp4"
+#define FILE_PATH "d://halsys/old_town_cross_1080p50_2M.ivf"
+
 //#define FILE_PATH "d://test_es/test.vc1"
-#define FILE_PATH "D://halsys/Seamless/avc/setting.txt"
+//#define FILE_PATH "D://halsys/Seamless/avc/setting.txt"
+//#define FILE_PATH "D://AV_S4_video1.avc"
 #define SERVER_IP 	"10.86.62.6"
 #define SERVER_PORT 52116
 #endif
@@ -40,7 +43,7 @@ int main(int argc, char* argv[])
 
 	halsys_media_player_start(player);
 
-	if(1) {
+	while(1) {
 #ifdef WIN32
 				Sleep(30000);
 #else

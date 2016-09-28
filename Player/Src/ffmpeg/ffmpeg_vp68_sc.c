@@ -50,11 +50,11 @@ int ffmepg_vp68_append_sequence_header(uint8_t * dataout,AVFormatContext *s,
 	    offset+=4;
 	    GST_WRITE_UINT32_LE(dataout+offset,0);
 	    offset+=4;
-	    GST_WRITE_UINT32_LE(dataout+offset, FOURCC_VP68); //missing in the start code doc
+	    GST_WRITE_UINT32_BE(dataout+offset, FOURCC_VP68); //missing in the start code doc
 	    offset+=4;        
-	    GST_WRITE_UINT16_BE(dataout+offset, st->codec->width); 
+	    GST_WRITE_UINT16_LE(dataout+offset, st->codec->width); 
 	    offset+=2;
-	    GST_WRITE_UINT16_BE(dataout+offset, st->codec->height);
+	    GST_WRITE_UINT16_LE(dataout+offset, st->codec->height);
 	    offset+=2;
 
 	    for(num =0;num < 8; num++)

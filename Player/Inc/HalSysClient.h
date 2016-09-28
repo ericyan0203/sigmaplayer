@@ -42,8 +42,8 @@ public:
 
 	virtual void  setNotifyCallback(void* cookie, notify_callback_t notifyFunc) {}
 
-    virtual void  sendEvent(int msg, int ext1 = 0, int ext2 = 0,unsigned int *obj=NULL) {
-		 handleBuffer((Media_Buffer_t *)obj);
+    virtual int  sendEvent(int msg, int ext1 = 0, int ext2 = 0,unsigned int *obj=NULL) {
+		return (int)handleBuffer((Media_Buffer_t *)obj);
 	}
 	
 private:

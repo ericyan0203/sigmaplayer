@@ -52,7 +52,7 @@ int halsys_player_init(const char * ip, const int port){
 	socket_connect(ip,port, 3000);
 	socket_setListener((Observer)Utils_InvokeCallback);
 	client_server_start();
-	utils_log(AV_DUMP_ERROR,"halsys_player_init\n");
+	utils_log(AV_DUMP_ERROR,"halsys_player_init ip %s port %d\n",ip, port);
 	return 0;
 }
 
@@ -188,8 +188,12 @@ int halsys_hdmi_player_create(void** phandle){
 	sigma_handle_t pInstance;
 
     sigma_test_init(); //don't check the return value
+	ret = HalSys_HDMI_Initialize();
+	utils_log(AV_DUMP_ERROR,"halsys_hdmi_init %x\n",ret);
 
 	ret = HalSys_HDMI_Open(&tConfig, &pInstance);
+    
+	utils_log(AV_DUMP_ERROR,"halsys_hdmi_open %x\n",ret);
 
 	if(SIGM_ErrorNone == ret) {
 		*phandle = (void *)pInstance;
@@ -210,6 +214,8 @@ int halsys_hdmi_player_start(void * phandle,display_port_t source,void ** port) 
     tConfig.nAudioSink = SIGM_SOUND_SINK_HEADPHONE | SIGM_SOUND_SINK_SPDIF_PCM | SIGM_SOUND_SINK_SPEAKER;
     ret = HalSys_HDMI_Start(phandle, &tConfig, &handle);
 
+	utils_log(AV_DUMP_ERROR,"halsys_hdmi_player_start %x\n",ret);
+
 	if(SIGM_ErrorNone == ret) {
 		*port = (void *)handle;
 	}else {
@@ -220,7 +226,11 @@ int halsys_hdmi_player_start(void * phandle,display_port_t source,void ** port) 
 }
 
 int halsys_hdmi_player_stop(void * port) {
-	return HalSys_HDMI_Stop(port); 
+	Error_Type_e ret = SIGM_ErrorNone;
+	ret = HalSys_HDMI_Stop(port);
+	utils_log(AV_DUMP_ERROR,"halsys_hdmi_player_stop %x\n",ret);
+	return ret;
+	
 }
 
 int  halsys_hdmi_player_destroy(void * phandle) {
@@ -234,9 +244,14 @@ int  halsys_dtv_player_create(void** phandle){
 
     sigma_test_init(); //don't check the return value
 
+	ret = HalSys_DigitalTV_Initialize();
+	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_init %x\n",ret);
+
 	tConfig.eDemuxCIPath = SIGM_CI_PATH_BYPASS;
 	tConfig.eDemuxInput = SIGM_INPUT_INTERNAL_SERIAL_DEMOD_0;
 	ret = HalSys_DigitalTV_Open(&tConfig, &pInstance);
+
+	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_open %x\n",ret);
 
 	if(SIGM_ErrorNone == ret) {
 		*phandle = (void *)pInstance;
@@ -269,6 +284,8 @@ int halsys_dtv_player_start(void * phandle, channel_config_t * config, void ** c
 	
 	ret = HalSys_DigitalTV_Start(phandle,&tConfig,&pChannel);
 
+	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_start %x\n",ret);
+
 	if(SIGM_ErrorNone == ret) {
 		*channel = (void *)pChannel;
 	}else {
@@ -279,6 +296,7 @@ int halsys_dtv_player_start(void * phandle, channel_config_t * config, void ** c
 }
 
 int halsys_dtv_player_stop(void * channel) {
+
 	return HalSys_DigitalTV_Stop(channel);
 }
 

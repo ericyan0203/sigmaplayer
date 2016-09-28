@@ -309,7 +309,7 @@ bool FfmpegSource::threadLoop()
         sp<Listener> listener = mListener.promote();
 
         if (listener != NULL) {
-             listener->sendEvent(MEDIA_BUFFERING_UPDATE,0,0,(unsigned int *)&buffer);
+             err = (Error_Type_e)listener->sendEvent(MEDIA_BUFFERING_UPDATE,0,0,(unsigned int *)&buffer);
         }
     }
 	
