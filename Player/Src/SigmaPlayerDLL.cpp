@@ -193,7 +193,7 @@ int halsys_hdmi_player_create(void** phandle){
 
 	ret = HalSys_HDMI_Open(&tConfig, &pInstance);
     
-	utils_log(AV_DUMP_ERROR,"halsys_hdmi_open %x\n",ret);
+	utils_log(AV_DUMP_ERROR,"halsys_hdmi_open %x Inst %x\n",ret,pInstance);
 
 	if(SIGM_ErrorNone == ret) {
 		*phandle = (void *)pInstance;
@@ -214,7 +214,7 @@ int halsys_hdmi_player_start(void * phandle,display_port_t source,void ** port) 
     tConfig.nAudioSink = SIGM_SOUND_SINK_HEADPHONE | SIGM_SOUND_SINK_SPDIF_PCM | SIGM_SOUND_SINK_SPEAKER;
     ret = HalSys_HDMI_Start(phandle, &tConfig, &handle);
 
-	utils_log(AV_DUMP_ERROR,"halsys_hdmi_player_start %x\n",ret);
+	utils_log(AV_DUMP_ERROR,"halsys_hdmi_player_start %x handle %p port %p\n",ret,phandle,handle);
 
 	if(SIGM_ErrorNone == ret) {
 		*port = (void *)handle;
@@ -228,13 +228,19 @@ int halsys_hdmi_player_start(void * phandle,display_port_t source,void ** port) 
 int halsys_hdmi_player_stop(void * port) {
 	Error_Type_e ret = SIGM_ErrorNone;
 	ret = HalSys_HDMI_Stop(port);
-	utils_log(AV_DUMP_ERROR,"halsys_hdmi_player_stop %x\n",ret);
+	utils_log(AV_DUMP_ERROR,"halsys_hdmi_player_stop %x %p\n",ret,port);
 	return ret;
 	
 }
 
 int  halsys_hdmi_player_destroy(void * phandle) {
-	 return HalSys_HDMI_Close(phandle);
+	 Error_Type_e ret = SIGM_ErrorNone;
+	 
+	 ret =  HalSys_HDMI_Close(phandle);
+
+	 utils_log(AV_DUMP_ERROR,"halsys_hdmi_player_destroy   %p ret %x\n",phandle,ret);
+	 
+	 return ret;
 }
 
 int  halsys_dtv_player_create(void** phandle){
