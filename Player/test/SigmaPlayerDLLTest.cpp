@@ -20,9 +20,12 @@
 //#define FILE_PATH "d://test_es/test.vc1"
 //#define FILE_PATH "D://halsys/Seamless/avc/setting.txt"
 //#define FILE_PATH "D://AV_S4_video1.avc"
-#define SERVER_IP 	"10.86.62.6"
+#define SERVER_IP 	"10.86.60.228"
 #define SERVER_PORT 52116
 #endif
+
+#define DTVTEST
+
 static void callback(void* cookie, int msg, int ext1, int ext2, unsigned int *obj){
 	printf("get callback reason %d  cookie %p\n",msg,cookie);
 	return;
@@ -30,11 +33,14 @@ static void callback(void* cookie, int msg, int ext1, int ext2, unsigned int *ob
 int main(int argc, char* argv[])
 {
 	void * player = NULL;
+	void * dtvInst = NULL;
+	void * channelInst = NULL;
 	unsigned long long curtime = 0;
 	unsigned long long duration = 0;
 
 	halsys_player_init(SERVER_IP,SERVER_PORT);
-	
+
+#ifdef MMTEST
 	halsys_media_player_create(FILE_PATH,&player);
 
 	printf("create player %p\n",player);
@@ -56,6 +62,50 @@ int main(int argc, char* argv[])
 
 	halsys_media_player_stop(player);
 	halsys_media_player_destroy(player);
+#endif
+
+#ifdef DTVTEST
+    halsys_dtv_player_create(&dtvInst);
+	halsys_tuner_lock(DEMOD_TYPE_ATSC,0,0,28);
+	
+    while (1) {
+		channel_config_t tConfig;
+		tConfig.video_pid = 0x51;
+		tConfig.video_format = VIDEO_CodingMPEG12;
+		tConfig.audio_pid = 0x54;
+		tConfig.audio_format = AUDIO_CodingAC3;
+		tConfig.pcr_pid = 0x51;
+		
+		halsys_dtv_player_start(dtvInst,&tConfig,&channelInst);
+		
+#ifdef WIN32
+				Sleep(10000);
+#else
+			 	usleep(10000 * US_PER_MS);
+#endif
+		halsys_dtv_player_stop(channelInst);
+		channelInst = NULL;
+		
+	   	tConfig.video_pid = 0x41;
+		tConfig.video_format = VIDEO_CodingMPEG12;
+		tConfig.audio_pid = 0x44;
+		tConfig.audio_format = AUDIO_CodingAC3;
+		tConfig.pcr_pid = 0x41;
+
+		halsys_dtv_player_start(dtvInst,&tConfig,&channelInst);
+		
+#ifdef WIN32
+				Sleep(10000);
+#else
+			 	usleep(10000 * US_PER_MS);
+#endif
+		halsys_dtv_player_stop(channelInst);
+		channelInst = NULL;
+		
+    }
+	halsys_dtv_player_destroy(dtvInst);
+#endif
+
 	halsys_player_deinit();
 	return 0;
 }

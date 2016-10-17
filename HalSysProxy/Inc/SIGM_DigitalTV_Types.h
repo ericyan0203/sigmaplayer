@@ -87,6 +87,7 @@ typedef struct FILTER_CONFIG {
     Filter_Pattern_Config_t tFilterPatternConfig;
 } Filter_Config_t, *pFilter_Config_t;
 
+
 // typedef Error_Type_e (*FilterDataCBFunction_t)(filter_ptr ptFilter, trid_uint32 nSize, datatype_byte* ptSectionData);
 // typedef  Error_Type_e  (*PVRDataCBFunction_t)(case_ptr ptInst, trid_uint32
 // nSize, datatype_byte * ptPVRData);

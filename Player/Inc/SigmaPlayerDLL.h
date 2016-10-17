@@ -67,6 +67,14 @@ typedef struct channel_config {
    unsigned int pcr_pid;
 }channel_config_t;
 
+typedef enum tunner_type {
+    DEMOD_TYPE_INVALID,
+    DEMOD_TYPE_ATSC,
+    DEMOD_TYPE_DVBC,
+    DEMOD_TYPE_DVBT,
+    DEMOD_TYPE_MAX
+}tuner_type_t;
+
 extern "C"  int __declspec(dllexport)halsys_player_init(const char * ip, const int port);
 
 extern "C"  int __declspec(dllexport)halsys_player_deinit();
@@ -107,6 +115,6 @@ extern "C" int __declspec(dllexport)halsys_dtv_player_stop(void * channel);
 
 extern "C" int __declspec(dllexport)halsys_dtv_player_destroy(void * phandle);
 
-extern "C" int __declspec(dllexport)halsys_tuner_lock(int stackyype, int bandwidth, int symbolrate, int freqkhz);
+extern "C" int __declspec(dllexport)halsys_tuner_lock(tuner_type_t stackyype, int bandwidth, int symbolrate, int freqkhz);
 
 #endif

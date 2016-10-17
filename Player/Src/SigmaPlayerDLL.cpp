@@ -11,6 +11,7 @@
 #include "SIGM_Media_API.h"
 #include "SIGM_DigitalTV_API.h"
 #include "SIGM_HDMI_API.h"
+#include "SIGM_Tuner_API.h"
 #include  "ISigmaPlayer.h"
 
 #define SOUND_BIN_PATH "/opt/Misc/sound_preset.bin"
@@ -248,13 +249,13 @@ int  halsys_dtv_player_create(void** phandle){
     Demux_Config_t tConfig;
 	sigma_handle_t pInstance;
 
-    sigma_test_init(); //don't check the return value
+	sigma_test_init(); //don't check the return value
 
 	ret = HalSys_DigitalTV_Initialize();
 	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_init %x\n",ret);
 
 	tConfig.eDemuxCIPath = SIGM_CI_PATH_BYPASS;
-	tConfig.eDemuxInput = SIGM_INPUT_INTERNAL_SERIAL_DEMOD_0;
+	tConfig.eDemuxInput = SIGM_INPUT_INTERNAL_PARALLEL_DEMOD_0;
 	ret = HalSys_DigitalTV_Open(&tConfig, &pInstance);
 
 	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_open %x\n",ret);
@@ -310,7 +311,7 @@ int halsys_dtv_player_destroy(void * phandle) {
 	return HalSys_DigitalTV_Close(phandle);
 }
 
-int halsys_tuner_lock(int stacktype, int bandwidth, int symbolrate, int freqkhz)
+int halsys_tuner_lock(tuner_type_t stacktype, int bandwidth, int symbolrate, int freqkhz)
 {
-	return 0;
+	return HalMisc_Tuner_Lock((HalSys_DemodType_e)stacktype,bandwidth,symbolrate,freqkhz);
 }

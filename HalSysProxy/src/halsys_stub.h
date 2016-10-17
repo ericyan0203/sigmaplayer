@@ -226,6 +226,16 @@ typedef struct {
 } halsys_packet_data;
 #pragma pack(pop)
 
+#pragma pack(push)  
+#pragma pack(1) 
+typedef struct HALMISC_TUNER_PARAMETER { 
+	unsigned int demod_type;
+	unsigned int bandwidth;
+	unsigned int symbolrate;
+	unsigned int frequence;
+} halmisc_tuner_param;
+#pragma pack(pop)
+
 //*************************************************************
 // Function
 //*************************************************************
@@ -280,6 +290,8 @@ halsys_ret halsys_dtv_close(halsys_common_param* arg);
 halsys_ret halsys_dtv_start(dtv_start_param* arg);
 
 halsys_ret halsys_dtv_stop(halsys_common_param* arg);
+
+halsys_ret halmisc_tuner_lock(halmisc_tuner_param * arg);
 
 #ifdef __cplusplus
 }

@@ -275,3 +275,8 @@ halsys_ret halsys_dtv_stop(halsys_common_param* arg) {
 	unsigned int length = sizeof(halsys_packet_data)+ sizeof(halsys_common_param);
 	return halsys_param_fixed_stub(ROUTINE,(void *)arg, length);
 }
+
+halsys_ret halmisc_tuner_lock(halmisc_tuner_param *arg) {
+	unsigned int length = sizeof(halsys_packet_data)+ sizeof(halmisc_tuner_param);
+	return halsys_param_fixed_stub(ROUTINE,(void *)arg, length);
+}

@@ -76,4 +76,3 @@ Error_Type_e HalSys_DigitalTV_Stop(sigma_handle_t ptInst) {
 
 	return (Error_Type_e)(ret.common_ret.ret);
 }
-
