@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 
 #ifdef DTVTEST
     halsys_dtv_player_create(&dtvInst);
-	halsys_tuner_lock(DEMOD_TYPE_ATSC,0,0,28);
+	halsys_tuner_lock((STACK_ATSC1<<16|TYPE_AIR),0,0,28);
 	
     while (1) {
 		channel_config_t tConfig;

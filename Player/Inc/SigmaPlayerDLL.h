@@ -1,6 +1,19 @@
 #ifndef _SIGMA_PLAYER_DLL_H
 #define _SIGMA_PLAYER_DLL_H
 
+#define STACK_ATSC1   0
+#define STACK_ATSC2   1
+#define STACK_DVBT    2
+#define STACK_DVBC    3
+
+#define TYPE_ATV      0
+#define TYPE_DTV      1
+#define TYPE_AIR      2
+#define TYPE_STD      2
+#define TYPE_HRC      2
+#define TYPE_IRC      2
+
+
 typedef void (*callback_t)(void* cookie, int msg, int ext1, int ext2, unsigned int *obj);
 
 typedef enum video_format {
@@ -115,6 +128,6 @@ extern "C" int __declspec(dllexport)halsys_dtv_player_stop(void * channel);
 
 extern "C" int __declspec(dllexport)halsys_dtv_player_destroy(void * phandle);
 
-extern "C" int __declspec(dllexport)halsys_tuner_lock(tuner_type_t stackyype, int bandwidth, int symbolrate, int freqkhz);
+extern "C" int __declspec(dllexport)halsys_tuner_lock(int stackyype, int bandwidth, int symbolrate, int freqkhz);
 
 #endif

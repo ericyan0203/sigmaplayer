@@ -29,6 +29,40 @@ sp<SigmaMediaPlayer> player = NULL;
 int mPort = 52116;
 char mIP[256]= {0};
 
+
+static HalSys_DemodType_e sf_stacktypeMapping(int stacktype) {
+		int stack = (stacktype &0xffff0000)>>16;
+		int type = stacktype&0xffff;
+		HalSys_DemodType_e etype = HalSys_DemodType_INVALID;
+
+		if(STACK_ATSC1 == stack ||STACK_ATSC2 == stack) {
+			if(TYPE_ATV == type) {
+				etype = HalSys_DemodType_ATSC_ATV;
+			}else if(TYPE_AIR == type) {
+				etype = HalSys_DemodType_ATSC_AIR;
+			}else if(TYPE_STD == type) {
+				etype = HalSys_DemodType_ATSC_STD;
+			}else if(TYPE_HRC == type) {
+				etype = HalSys_DemodType_ATSC_HRC;
+			}else if(TYPE_IRC == type) {
+				etype = HalSys_DemodType_ATSC_IRC;
+			}
+		}else if(STACK_DVBC == stack ) {
+		    if(TYPE_ATV == type) {
+				etype = HalSys_DemodType_DVBC_ATV;
+		    }else if(TYPE_DTV == type) {
+		     	etype = HalSys_DemodType_DVBC_DTV;
+		    }
+		}else if(STACK_DVBT == stack) {
+			if(TYPE_ATV == type) {
+				etype = HalSys_DemodType_DVBT_ATV;
+			}else if(TYPE_DTV == type) {
+				etype = HalSys_DemodType_DVBT_ATV;
+			}
+		}
+		return etype;
+}
+
 static Error_Type_e sigma_test_init(void) {
     BoardConfig_t tBoardConfig;
     Error_Type_e ret = SIGM_ErrorNone;
@@ -258,7 +292,7 @@ int  halsys_dtv_player_create(void** phandle){
 	tConfig.eDemuxInput = SIGM_INPUT_INTERNAL_PARALLEL_DEMOD_0;
 	ret = HalSys_DigitalTV_Open(&tConfig, &pInstance);
 
-	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_open %x\n",ret);
+	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_open %x Inst %p\n",ret,pInstance);
 
 	if(SIGM_ErrorNone == ret) {
 		*phandle = (void *)pInstance;
@@ -291,7 +325,7 @@ int halsys_dtv_player_start(void * phandle, channel_config_t * config, void ** c
 	
 	ret = HalSys_DigitalTV_Start(phandle,&tConfig,&pChannel);
 
-	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_start %x\n",ret);
+	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_start %x Inst %p channel %p v[%x][%x] a[%x][%x]\n",ret,phandle,pChannel,tConfig.tVideoConfig.nVideoPID,tConfig.tVideoConfig.eVideoFormat,tConfig.tAudioConfig.nAudioPID,tConfig.tAudioConfig.eAudioFormat);
 
 	if(SIGM_ErrorNone == ret) {
 		*channel = (void *)pChannel;
@@ -303,15 +337,25 @@ int halsys_dtv_player_start(void * phandle, channel_config_t * config, void ** c
 }
 
 int halsys_dtv_player_stop(void * channel) {
-
-	return HalSys_DigitalTV_Stop(channel);
+	Error_Type_e ret = SIGM_ErrorNone;
+	ret = HalSys_DigitalTV_Stop(channel);
+	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_stop ret %x channel %p\n",ret,channel);
+	return ret;
 }
 
 int halsys_dtv_player_destroy(void * phandle) {
-	return HalSys_DigitalTV_Close(phandle);
+	Error_Type_e ret = SIGM_ErrorNone;
+	ret = HalSys_DigitalTV_Close(phandle);
+	utils_log(AV_DUMP_ERROR,"halsys_dtv_player_destroy ret %x inst %p\n",ret,phandle);
+	return ret;
 }
 
-int halsys_tuner_lock(tuner_type_t stacktype, int bandwidth, int symbolrate, int freqkhz)
-{
-	return HalMisc_Tuner_Lock((HalSys_DemodType_e)stacktype,bandwidth,symbolrate,freqkhz);
+int halsys_tuner_lock(int stacktype, int bandwidth, int symbolrate, int freqkhz)
+{	
+	int ret = SIGM_ErrorNone;
+	HalSys_DemodType_e eStackType = sf_stacktypeMapping(stacktype);
+	
+	ret = HalMisc_Tuner_Lock(eStackType,bandwidth,symbolrate,freqkhz);
+	utils_log(AV_DUMP_ERROR,"halsys_tuner_lock ret %x stacktype %x channel/freq %x\n",ret,stacktype,freqkhz);
+	return ret;
 }

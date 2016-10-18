@@ -8,9 +8,15 @@ extern "C" {
 
 typedef enum {
     HalSys_DemodType_INVALID,
-    HalSys_DemodType_ATSC,
-    HalSys_DemodType_DVBC,
-    HalSys_DemodType_DVBT,
+    HalSys_DemodType_ATSC_AIR,
+    HalSys_DemodType_ATSC_STD,
+    HalSys_DemodType_ATSC_HRC,
+    HalSys_DemodType_ATSC_IRC,
+    HalSys_DemodType_ATSC_ATV,
+    HalSys_DemodType_DVBC_DTV,
+    HalSys_DemodType_DVBC_ATV,
+    HalSys_DemodType_DVBT_DTV,
+    HalSys_DemodType_DVBT_ATV,
     HalSys_DemodType_MAX
 } HalSys_DemodType_e;
 
